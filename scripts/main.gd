@@ -1,6 +1,7 @@
 extends Node2D
-## MARÉ ALTA — Fase 1: núcleo match-3 jogável.
+## MARÉ ALTA — Fase 2: núcleo match-3 + 4 power-ups (Pipa, Gaivota, Trovão, Sol).
 ## Retrato 720x1280. Controles: toque na peça + toque na vizinha, ou arrastar.
+## Power-up: toque nele para disparar, ou troque com peça/power-up vizinho.
 
 const CELL := 76.0
 const BOARD_PX := 608.0
@@ -13,7 +14,7 @@ const T_CONCHA := 4
 
 const GOAL_COCO := 20
 const GOAL_CONCHA := 20
-const START_MOVES := 15
+const START_MOVES := 12 # recalibrado via bot_calib.gd (Fase 2): win-rate do bot 90% em 200 jogos/limite; humano típico cai na zona near-miss
 
 const TEX_PATHS: Array[String] = [
 	"res://assets/pecas/media-generation-peca-coco-0-4c8ee45f-8fe4-4ba7-a157-87abc63074d9.webp",
@@ -21,6 +22,10 @@ const TEX_PATHS: Array[String] = [
 	"res://assets/pecas/media-generation-peca-chinelo-0-3d35c8f8-fa6f-4094-9002-013d606c627a.webp",
 	"res://assets/pecas/media-generation-peca-peixe-0-b89b476d-f69a-4497-8be5-b2fedd17eeb2.webp",
 	"res://assets/pecas/media-generation-peca-concha-0-ff58d4b9-bb14-4907-946b-5e8ae9ff218d.webp",
+	"res://assets/pecas/media-generation-peca-pipa-0-c5f7b3c9-2118-4ee1-8b12-6b585b0bd854.webp",
+	"res://assets/pecas/media-generation-peca-gaivota-0-ef0974e1-77a1-409b-967b-26fb699f85a0.webp",
+	"res://assets/pecas/media-generation-peca-trovao-0-34664f41-9fe7-4a07-b1d1-f6809681a228.webp",
+	"res://assets/pecas/media-generation-peca-sol-powerup-0-024d75cd-b0ae-4a9c-ab3b-30666ea59f56.webp",
 ]
 
 var logic: BoardLogic
@@ -29,6 +34,7 @@ var board_node: Node2D
 var pieces: Array = [] # pieces[linha][coluna] -> Sprite2D
 var selected := Vector2i(-1, -1)
 var press_cell := Vector2i(-1, -1)
+var sol_armed := Vector2i(-1, -1)
 var busy := false
 var game_over := false
 var moves := START_MOVES
@@ -47,6 +53,20 @@ var overlay_star_holder: Control
 var overlay_button: Button
 
 
+func _tex_index(ptype: int) -> int:
+	match ptype:
+		BoardLogic.P_PIPA:
+			return 5
+		BoardLogic.P_GAIVOTA:
+			return 6
+		BoardLogic.P_TROVAO:
+			return 7
+		BoardLogic.P_SOL:
+			return 8
+		_:
+			return ptype
+
+
 func _ready() -> void:
 	for p in TEX_PATHS:
 		tex.append(load(p))
@@ -55,6 +75,7 @@ func _ready() -> void:
 	_build_board()
 	_build_overlay()
 	logic = BoardLogic.new()
+	logic.goal_types = [T_COCO, T_CONCHA]
 	_rebuild_pieces()
 	_update_goal_labels()
 	_update_moves_label()
@@ -129,8 +150,8 @@ func _build_hud() -> void:
 	add_child(_goals_box)
 	coco_label = _make_goal_row(T_COCO)
 	concha_label = _make_goal_row(T_CONCHA)
-	moves_label = _make_label("Movimentos: 15", 40, Vector2(0, 196), Vector2(720, 56))
-	_make_label("Toque em 2 peças vizinhas ou arraste para trocar", 24, Vector2(0, 1196), Vector2(720, 40))
+	moves_label = _make_label("Movimentos: 12", 40, Vector2(0, 196), Vector2(720, 56))
+	_make_label("Combine 4+ para criar power-ups!", 24, Vector2(0, 1196), Vector2(720, 40))
 	toast_label = _make_label("", 34, Vector2(0, 936), Vector2(720, 60))
 	toast_label.modulate.a = 0.0
 
@@ -247,11 +268,17 @@ func _drag_to(screen_pos: Vector2) -> void:
 	if not _valid_cell(press_cell):
 		return
 	var cell := _screen_to_cell(screen_pos)
-	if _valid_cell(cell) and cell != press_cell and logic.are_adjacent(press_cell, cell):
-		var a := press_cell
-		press_cell = Vector2i(-1, -1)
-		selected = Vector2i(-1, -1)
-		_update_select_frame()
+	if not (_valid_cell(cell) and cell != press_cell and logic.are_adjacent(press_cell, cell)):
+		return
+	var a := press_cell
+	press_cell = Vector2i(-1, -1)
+	selected = Vector2i(-1, -1)
+	_update_select_frame()
+	var ta: int = logic.get_type(a)
+	var tb: int = logic.get_type(cell)
+	if logic.is_powerup(ta) or logic.is_powerup(tb):
+		_activate_pair(a, cell)
+	else:
 		attempt_swap(a, cell)
 
 
@@ -259,13 +286,38 @@ func _on_press(screen_pos: Vector2) -> void:
 	var cell := _screen_to_cell(screen_pos)
 	if not _valid_cell(cell):
 		return
+	# Sol armado: segundo toque escolhe a cor (ou combo / desarma).
+	if _valid_cell(sol_armed):
+		if cell == sol_armed:
+			_disarm_sol()
+			return
+		var t: int = logic.get_type(cell)
+		if logic.is_powerup(t):
+			var s := sol_armed
+			_disarm_sol()
+			_do_combo(s, cell)
+		elif logic.is_normal(t):
+			_do_sol_fire(sol_armed, t)
+		return
+	var t: int = logic.get_type(cell)
+	# Toque direto num power-up: dispara (Sol arma para escolher cor).
+	if logic.is_powerup(t):
+		if t == BoardLogic.P_SOL:
+			_arm_sol(cell)
+		else:
+			_do_single_powerup(cell)
+		return
 	press_cell = cell
 	if _valid_cell(selected) and cell != selected and logic.are_adjacent(selected, cell):
 		var a := selected
 		selected = Vector2i(-1, -1)
 		press_cell = Vector2i(-1, -1)
 		_update_select_frame()
-		attempt_swap(a, cell)
+		var tb: int = logic.get_type(cell)
+		if logic.is_powerup(tb):
+			_activate_pair(a, cell)
+		else:
+			attempt_swap(a, cell)
 	elif cell == selected:
 		selected = Vector2i(-1, -1)
 		_update_select_frame()
@@ -282,7 +334,12 @@ func _on_release(screen_pos: Vector2) -> void:
 		press_cell = Vector2i(-1, -1)
 		selected = Vector2i(-1, -1)
 		_update_select_frame()
-		attempt_swap(a, cell)
+		var ta: int = logic.get_type(a)
+		var tb: int = logic.get_type(cell)
+		if logic.is_powerup(ta) or logic.is_powerup(tb):
+			_activate_pair(a, cell)
+		else:
+			attempt_swap(a, cell)
 	else:
 		press_cell = Vector2i(-1, -1)
 
@@ -302,18 +359,31 @@ func _cell_pos(cell: Vector2i) -> Vector2:
 
 
 func _update_select_frame() -> void:
-	if _valid_cell(selected):
-		select_frame.position = Vector2(float(selected.x) * CELL, float(selected.y) * CELL)
+	if _valid_cell(selected) or _valid_cell(sol_armed):
+		var c := selected if _valid_cell(selected) else sol_armed
+		select_frame.position = Vector2(float(c.x) * CELL, float(c.y) * CELL)
 		select_frame.visible = true
 	else:
 		select_frame.visible = false
+
+
+func _arm_sol(cell: Vector2i) -> void:
+	sol_armed = cell
+	_update_select_frame()
+	_toast("Sol armado! Toque numa peça para escolher a cor.")
+
+
+func _disarm_sol() -> void:
+	sol_armed = Vector2i(-1, -1)
+	_update_select_frame()
+	_hide_toast()
 
 
 # ---------------------------------------------------------------- peças
 
 func _create_piece(ptype: int, cell: Vector2i) -> Sprite2D:
 	var s := Sprite2D.new()
-	var t: Texture2D = tex[ptype]
+	var t: Texture2D = tex[_tex_index(ptype)]
 	s.texture = t
 	var sc: float = PIECE_TARGET / maxf(float(t.get_width()), float(t.get_height()))
 	s.scale = Vector2(sc, sc)
@@ -333,12 +403,14 @@ func _rebuild_pieces() -> void:
 			row.append(_create_piece(logic.get_type(Vector2i(c, r)), Vector2i(c, r)))
 		pieces.append(row)
 	selected = Vector2i(-1, -1)
+	sol_armed = Vector2i(-1, -1)
 	_update_select_frame()
 
 
 # ---------------------------------------------------------------- jogadas
 
 func attempt_swap(a: Vector2i, b: Vector2i) -> void:
+	## Troca entre duas peças NORMAIS (power-ups têm fluxo próprio).
 	if busy or game_over:
 		return
 	busy = true
@@ -351,7 +423,12 @@ func attempt_swap(a: Vector2i, b: Vector2i) -> void:
 	tw.tween_property(na, "position", _cell_pos(b), 0.16).set_trans(Tween.TRANS_SINE)
 	tw.tween_property(nb, "position", _cell_pos(a), 0.16).set_trans(Tween.TRANS_SINE)
 	await tw.finished
-	if logic.find_matches().is_empty():
+	var sq_cell := Vector2i(-1, -1)
+	if logic.detect_square_at(a):
+		sq_cell = a
+	elif logic.detect_square_at(b):
+		sq_cell = b
+	if logic.find_matches().is_empty() and not _valid_cell(sq_cell):
 		# Troca inválida: desfaz com animação.
 		logic.swap_cells(a, b)
 		pieces[a.y][a.x] = na
@@ -364,26 +441,152 @@ func attempt_swap(a: Vector2i, b: Vector2i) -> void:
 		return
 	moves -= 1
 	_update_moves_label()
-	await _resolve_board()
+	await _resolve_cascades(a, sq_cell)
 	busy = false
 	_after_turn()
 
 
-func _resolve_board() -> void:
+func _activate_pair(a: Vector2i, b: Vector2i) -> void:
+	## Troca envolvendo power-up: dispara sem precisar de combinação.
+	if busy or game_over:
+		return
+	var ta: int = logic.get_type(a)
+	var tb: int = logic.get_type(b)
+	# Dois power-ups: combo direto, sem troca visual.
+	if logic.is_powerup(ta) and logic.is_powerup(tb):
+		_do_combo(a, b)
+		return
+	busy = true
+	selected = Vector2i(-1, -1)
+	_update_select_frame()
+	var na: Sprite2D = pieces[a.y][a.x]
+	var nb: Sprite2D = pieces[b.y][b.x]
+	logic.swap_cells(a, b)
+	pieces[a.y][a.x] = nb
+	pieces[b.y][b.x] = na
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(na, "position", _cell_pos(b), 0.16).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(nb, "position", _cell_pos(a), 0.16).set_trans(Tween.TRANS_SINE)
+	await tw.finished
+	# Power-up está agora na outra célula.
+	var pcell: Vector2i = b if logic.is_powerup(logic.get_type(b)) else a
+	var ptype: int = logic.get_type(pcell)
+	var other: Vector2i = a if pcell == b else b
+	moves -= 1
+	_update_moves_label()
+	if ptype == BoardLogic.P_SOL:
+		await _execute_trigger(logic.trigger_sol_at(pcell, logic.get_type(other)))
+	else:
+		await _execute_trigger(logic.trigger_at(pcell))
+	busy = false
+	_after_turn()
+
+
+func _do_single_powerup(cell: Vector2i) -> void:
+	## Toque direto num power-up (exceto Sol).
+	if busy or game_over:
+		return
+	busy = true
+	selected = Vector2i(-1, -1)
+	_update_select_frame()
+	moves -= 1
+	_update_moves_label()
+	await _execute_trigger(logic.trigger_at(cell))
+	busy = false
+	_after_turn()
+
+
+func _do_combo(a: Vector2i, b: Vector2i) -> void:
+	if busy or game_over:
+		return
+	busy = true
+	selected = Vector2i(-1, -1)
+	_update_select_frame()
+	moves -= 1
+	_update_moves_label()
+	await _execute_trigger(logic.combo_cells(a, b))
+	busy = false
+	_after_turn()
+
+
+func _do_sol_fire(sol_cell: Vector2i, color: int) -> void:
+	if busy or game_over:
+		return
+	busy = true
+	_disarm_sol()
+	moves -= 1
+	_update_moves_label()
+	await _execute_trigger(logic.trigger_sol_at(sol_cell, color))
+	busy = false
+	_after_turn()
+
+
+func _execute_trigger(result: Dictionary) -> void:
+	await _play_fx(result["fx"])
+	var cells: Array = result["cells"]
+	var counts: Array = logic.remove_cells(cells)
+	coco_count += int(counts[T_COCO])
+	concha_count += int(counts[T_CONCHA])
+	await _blast_punch(cells)
+	await _pop_sprites(cells)
+	# FIX (bug 2026-10-17): a gravidade precisa rodar SEMPRE após a
+	# explosão. Antes ela só rodava dentro de _resolve_cascades quando
+	# uma combinação era removida — se a explosão não gerasse match
+	# novo, o loop quebrava na 1ª iteração e as células ficavam vazias.
+	var falls: Array = logic.apply_gravity()
+	await _animate_falls(falls)
+	await _resolve_cascades(Vector2i(-1, -1), Vector2i(-1, -1))
+	_update_goal_labels()
+
+
+func _resolve_cascades(preferred: Vector2i, square_cell: Vector2i) -> void:
+	var pref := preferred
+	var sq := square_cell
+	var first := true
 	while true:
-		var matches: Array = logic.find_matches()
-		if matches.is_empty():
+		var res: Dictionary
+		if first and _valid_cell(sq):
+			res = logic.resolve_square(sq)
+			sq = Vector2i(-1, -1)
+		else:
+			res = logic.resolve_matches(pref if first else Vector2i(-1, -1))
+		first = false
+		var removed: Array = res["removed"]
+		if removed.is_empty():
 			break
-		await _pop_cells(matches)
+		var counts: Array = res["counts"]
+		coco_count += int(counts[T_COCO])
+		concha_count += int(counts[T_CONCHA])
+		await _pop_sprites(removed)
+		var ctype: int = int(res["created_ptype"])
+		if ctype != -1:
+			await _spawn_powerup_sprite(ctype, res["created_at"])
 		var falls: Array = logic.apply_gravity()
 		await _animate_falls(falls)
 		_update_goal_labels()
 
 
-func _pop_cells(cells: Array) -> void:
-	var counts: Array = logic.remove_cells(cells)
-	coco_count += int(counts[T_COCO])
-	concha_count += int(counts[T_CONCHA])
+func _blast_punch(cells: Array) -> void:
+	## A explosão "incha" as peças atingidas antes de sumirem — o flash
+	## sozinho era sutil demais e o Renner não viu animação nenhuma.
+	var nodes: Array = []
+	for v in cells:
+		var cell: Vector2i = v
+		if _valid_cell(cell):
+			var node: Sprite2D = pieces[cell.y][cell.x]
+			if node != null:
+				nodes.append(node)
+	if nodes.is_empty():
+		return
+	var tw := create_tween().set_parallel(true)
+	for n in nodes:
+		var s: Sprite2D = n
+		tw.tween_property(s, "scale", s.scale * 1.35, 0.10)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	await tw.finished
+
+
+func _pop_sprites(cells: Array) -> void:
 	var nodes: Array = []
 	for v in cells:
 		var cell: Vector2i = v
@@ -391,6 +594,8 @@ func _pop_cells(cells: Array) -> void:
 		if node != null:
 			nodes.append(node)
 			pieces[cell.y][cell.x] = null
+	if nodes.is_empty():
+		return
 	var tw := create_tween().set_parallel(true)
 	for n in nodes:
 		tw.tween_property(n, "scale", Vector2.ZERO, 0.16)\
@@ -398,6 +603,20 @@ func _pop_cells(cells: Array) -> void:
 	await tw.finished
 	for n in nodes:
 		n.queue_free()
+
+
+func _spawn_powerup_sprite(ptype: int, cell: Vector2i) -> void:
+	var old: Sprite2D = pieces[cell.y][cell.x]
+	if old != null:
+		old.queue_free()
+	var ps := _create_piece(ptype, cell)
+	pieces[cell.y][cell.x] = ps
+	var target: Vector2 = ps.scale
+	ps.scale = Vector2.ZERO
+	var tw := create_tween()
+	tw.tween_property(ps, "scale", target, 0.28)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	await tw.finished
 
 
 func _animate_falls(falls: Array) -> void:
@@ -423,6 +642,79 @@ func _animate_falls(falls: Array) -> void:
 		tw.tween_property(node, "position", _cell_pos(Vector2i(col, to_row)), 0.24)\
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	await tw.finished
+
+
+func _play_fx(fx: Array) -> void:
+	for e in fx:
+		var kind: String = String(e["kind"])
+		if kind == "gaivota_flight":
+			await _fx_gaivota_flight(e["from"], e["to"])
+		elif kind == "blast":
+			_fx_flash(_blast_rect(e))
+			if String(e.get("shape", "")) == "square":
+				_shake(8.0) # Trovão: área grande merece impacto
+		elif kind == "sol_fire":
+			_fx_flash(Rect2(BOARD_X, BOARD_Y, BOARD_PX, BOARD_PX), 0.6)
+		elif kind == "combo":
+			_fx_flash(Rect2(BOARD_X, BOARD_Y, BOARD_PX, BOARD_PX), 0.8)
+			_shake(12.0)
+
+
+func _blast_rect(e: Dictionary) -> Rect2:
+	var shape: String = String(e.get("shape", "square"))
+	var center: Vector2i = e["center"]
+	if shape == "cross":
+		# Retornado como dois flashes: desenha o retângulo envolvente da cruz
+		# (linha + coluna inteiras) via dois rects; aqui um só: usa dois flashes.
+		_fx_flash(Rect2(BOARD_X, BOARD_Y + center.y * CELL, BOARD_PX, CELL), 0.4)
+		return Rect2(BOARD_X + center.x * CELL, BOARD_Y, CELL, BOARD_PX)
+	var radius: int = int(e.get("radius", 2))
+	var x0: float = BOARD_X + maxf(0.0, float(center.x - radius)) * CELL
+	var y0: float = BOARD_Y + maxf(0.0, float(center.y - radius)) * CELL
+	var x1: float = BOARD_X + minf(7.0, float(center.x + radius)) * CELL + CELL
+	var y1: float = BOARD_Y + minf(7.0, float(center.y + radius)) * CELL + CELL
+	return Rect2(x0, y0, x1 - x0, y1 - y0)
+
+
+func _fx_flash(rect: Rect2, alpha: float = 0.75) -> void:
+	## Flash branco em pulso duplo — o flash único de 0.28s era sutil
+	## demais e passava despercebido.
+	var r := ColorRect.new()
+	r.color = Color(1, 1, 1, alpha)
+	r.position = rect.position
+	r.size = rect.size
+	add_child(r)
+	var tw := create_tween()
+	tw.tween_property(r, "modulate:a", 0.15, 0.12)
+	tw.tween_property(r, "modulate:a", alpha, 0.10)
+	tw.tween_property(r, "modulate:a", 0.0, 0.30)
+	tw.tween_callback(r.queue_free)
+
+
+func _shake(magnitude: float = 10.0) -> void:
+	## Tremidinha rápida no tabuleiro para explosões grandes.
+	## (input fica bloqueado por busy=true durante a ativação)
+	var orig: Vector2 = board_node.position
+	var tw := create_tween()
+	tw.tween_property(board_node, "position", orig + Vector2(magnitude, 0), 0.05)
+	tw.tween_property(board_node, "position", orig + Vector2(-magnitude, 0), 0.05)
+	tw.tween_property(board_node, "position", orig + Vector2(magnitude * 0.5, 0), 0.05)
+	tw.tween_property(board_node, "position", orig, 0.05)
+
+
+func _fx_gaivota_flight(from_cell: Vector2i, to_cell: Vector2i) -> void:
+	var s := Sprite2D.new()
+	var t: Texture2D = tex[_tex_index(BoardLogic.P_GAIVOTA)]
+	s.texture = t
+	var sc: float = PIECE_TARGET / maxf(float(t.get_width()), float(t.get_height()))
+	s.scale = Vector2(sc, sc)
+	s.position = board_node.position + _cell_pos(from_cell)
+	add_child(s)
+	var tw := create_tween()
+	tw.tween_property(s, "position", board_node.position + _cell_pos(to_cell), 0.38)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	await tw.finished
+	s.queue_free()
 
 
 func _after_turn() -> void:
@@ -497,6 +789,7 @@ func _restart() -> void:
 	busy = false
 	selected = Vector2i(-1, -1)
 	press_cell = Vector2i(-1, -1)
+	sol_armed = Vector2i(-1, -1)
 	toast_label.modulate.a = 0.0
 	logic.new_board()
 	_rebuild_pieces()
