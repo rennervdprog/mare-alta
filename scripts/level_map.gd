@@ -59,7 +59,7 @@ func _build_chrome() -> void:
 	sea.color = Color(0.16, 0.55, 0.72)
 	sea.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(sea)
-	_label("Mapa das Fases", 44, Vector2(0, 16), 720.0)
+	_label("Mapa das Fases", 40, Vector2(24, 20), 460.0, HORIZONTAL_ALIGNMENT_LEFT)
 	# Pílula de estrelas no canto superior direito.
 	var pill := PanelContainer.new()
 	pill.position = Vector2(512, 20)
@@ -87,10 +87,10 @@ func _build_chrome() -> void:
 	add_child(pill)
 
 
-func _label(text: String, size: int, pos: Vector2, w: float) -> Label:
+func _label(text: String, size: int, pos: Vector2, w: float, align := HORIZONTAL_ALIGNMENT_CENTER) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.horizontal_alignment = align
 	l.position = pos
 	l.size = Vector2(w, size * 1.6)
 	l.add_theme_font_size_override("font_size", size)
@@ -238,7 +238,11 @@ func _add_node(n: int, i: int) -> void:
 			tw.tween_property(b, "scale", Vector2(1.1, 1.1), 0.7).set_trans(Tween.TRANS_SINE)
 			tw.tween_property(b, "scale", Vector2.ONE, 0.7).set_trans(Tween.TRANS_SINE)
 	else:
-		b.add_theme_stylebox_override("normal", _circle_style(Color(0.6, 0.65, 0.69)))
+		# Nó bloqueado: o botão fica disabled, então é preciso sobrescrever
+		# também o stylebox "disabled" (senão o tema padrão quadrado aparece).
+		var locked_sb := _circle_style(Color(0.6, 0.65, 0.69))
+		b.add_theme_stylebox_override("normal", locked_sb)
+		b.add_theme_stylebox_override("disabled", locked_sb)
 		b.modulate = Color(1, 1, 1, 0.78)
 		b.disabled = true
 	if n <= GameState.unlocked_level:

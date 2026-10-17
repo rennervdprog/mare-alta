@@ -91,9 +91,9 @@ func _build_scene() -> void:
 	sub.size = Vector2(720, 50)
 	_style_label(sub, 32)
 	add_child(sub)
-	# Pílula de estrelas.
+	# Pílula de estrelas: canto superior direito, livre do bloco de título.
 	var pill := PanelContainer.new()
-	pill.position = Vector2(268, 160)
+	pill.position = Vector2(528, 168)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(1, 1, 1, 0.92)
 	sb.set_corner_radius_all(32)

@@ -3,11 +3,11 @@ extends Node2D
 ## Retrato 720x1280. Controles: toque na peça + toque na vizinha, ou arrastar.
 ## Power-up: toque nele para disparar, ou troque com peça/power-up vizinho.
 
-const CELL := 76.0
-const BOARD_PX := 608.0
-const BOARD_X := 56.0
+const CELL := 84.0
+const BOARD_PX := 672.0
+const BOARD_X := 24.0
 const BOARD_Y := 300.0
-const PIECE_TARGET := 64.0
+const PIECE_TARGET := 72.0
 
 const T_COCO := 0
 const T_GUARDA_SOL := 1
@@ -25,6 +25,15 @@ const TEX_PATHS: Array[String] = [
 	"res://assets/pecas/media-generation-peca-gaivota-0-ef0974e1-77a1-409b-967b-26fb699f85a0.webp",
 	"res://assets/pecas/media-generation-peca-trovao-0-34664f41-9fe7-4a07-b1d1-f6809681a228.webp",
 	"res://assets/pecas/media-generation-peca-sol-powerup-0-024d75cd-b0ae-4a9c-ab3b-30666ea59f56.webp",
+]
+## Ícones circulares limpos das 5 peças base, usados nas metas do HUD
+## (as texturas cruas têm fundo sólido e ficariam como quadrados).
+const GOAL_ICON_PATHS: Array[String] = [
+	"res://assets/ui/icons/icon-goal-coco.png",
+	"res://assets/ui/icons/icon-goal-guarda-sol.png",
+	"res://assets/ui/icons/icon-goal-chinelo.png",
+	"res://assets/ui/icons/icon-goal-peixe.png",
+	"res://assets/ui/icons/icon-goal-concha.png",
 ]
 
 var logic: BoardLogic
@@ -61,6 +70,9 @@ var overlay_star_holder: Control
 var overlay_button: Button
 var overlay_continue: Button
 var _continued: bool = false # continuar pago só 1x por tentativa
+var _pause_btn: Button
+var _pause_layer: CanvasLayer
+var _pieces_clip: Control # recorte: peças só desenham dentro do tabuleiro
 
 
 func _tex_index(ptype: int) -> int:
@@ -142,7 +154,11 @@ func _make_goal_row(tex_idx: int) -> Label:
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 10)
 	var icon := TextureRect.new()
-	icon.texture = tex[tex_idx]
+	# Ícone circular limpo da peça (metas são sempre peças base 0-4).
+	if tex_idx >= 0 and tex_idx < GOAL_ICON_PATHS.size():
+		icon.texture = load(GOAL_ICON_PATHS[tex_idx]) as Texture2D
+	else:
+		icon.texture = tex[tex_idx]
 	icon.custom_minimum_size = Vector2(56, 56)
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -211,7 +227,7 @@ func _build_hud() -> void:
 	var tag_metas := UIFactory.tag_label("Metas")
 	_place_ax(tag_metas, _hud_root, 0.45, -75.0, 75.0, 0.0, 48.0)
 	var tag_jog := UIFactory.tag_label("Jogadas")
-	_place_ax(tag_jog, _hud_root, 0.81, -75.0, 75.0, 0.0, 48.0)
+	_place_ax(tag_jog, _hud_root, 0.70, -75.0, 75.0, 0.0, 48.0)
 	# Metas: ícone + contador.
 	_goals_box = HBoxContainer.new()
 	_place_ax(_goals_box, _hud_root, 0.45, -135.0, 135.0, 56.0, 134.0)
@@ -229,9 +245,26 @@ func _build_hud() -> void:
 	moves_label.add_theme_constant_override("outline_size", 6)
 	moves_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	moves_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_place_ax(moves_label, _hud_root, 0.81, -95.0, 95.0, 44.0, 134.0)
+	_place_ax(moves_label, _hud_root, 0.70, -95.0, 95.0, 44.0, 134.0)
 	moves_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	moves_label.text = "%d" % moves
+	# Botão de pausa: disco dourado com "II" vazando na borda direita da pílula
+	# (espelha o retrato do Cláudio à esquerda). Padrão do gênero.
+	_pause_btn = Button.new()
+	_pause_btn.name = "PauseBtn"
+	_pause_btn.add_theme_stylebox_override("normal", UIFactory.tex_style(UIFactory.BAKED + "disc_gold.png"))
+	_pause_btn.add_theme_stylebox_override("hover", UIFactory.tex_style(UIFactory.BAKED + "disc_gold.png"))
+	_pause_btn.add_theme_stylebox_override("pressed", UIFactory.tex_style(UIFactory.BAKED + "disc_gold.png"))
+	_pause_btn.add_theme_stylebox_override("focus", UIFactory.tex_style(UIFactory.BAKED + "disc_gold.png"))
+	# Funciona com a árvore pausada (o resto do HUD congela).
+	_pause_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+	var pause_l := UIFactory.bubbly("II", 30, Color(0.369, 0.227, 0.0))
+	pause_l.set_anchors_preset(Control.PRESET_FULL_RECT)
+	pause_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_pause_btn.add_child(pause_l)
+	_place_ax(_pause_btn, _hud_root, 1.0, -96.0, -32.0, 47.0, 111.0)
+	_pause_btn.pressed.connect(_on_pause_pressed)
+	_build_pause_menu()
 	var hint_label := _make_label("Combine 4+ para criar power-ups!", 24, Vector2(0, 1196), Vector2(720, 40))
 	_hint_label = hint_label
 	toast_label = _make_label("", 34, Vector2(0, 936), Vector2(720, 60))
@@ -266,6 +299,16 @@ func _build_board() -> void:
 	add_child(_board_panel)
 	board_node = Node2D.new()
 	add_child(board_node)
+	# Recorte das peças: as novas nascem ACIMA do tabuleiro e caem para
+	# dentro; o Control com clip_contents impede que sejam desenhadas
+	# fora da moldura dourada durante a queda.
+	_pieces_clip = Control.new()
+	_pieces_clip.name = "PiecesClip"
+	_pieces_clip.position = Vector2.ZERO
+	_pieces_clip.size = Vector2(BOARD_PX, BOARD_PX)
+	_pieces_clip.clip_contents = true
+	_pieces_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	board_node.add_child(_pieces_clip)
 	select_frame = Panel.new()
 	var fsb := StyleBoxFlat.new()
 	fsb.bg_color = Color(1, 1, 1, 0.0)
@@ -560,15 +603,14 @@ func _create_piece(ptype: int, cell: Vector2i) -> Sprite2D:
 	var sc: float = PIECE_TARGET / maxf(float(t.get_width()), float(t.get_height()))
 	s.scale = Vector2(sc, sc)
 	s.position = _cell_pos(cell)
-	board_node.add_child(s)
+	_pieces_clip.add_child(s)
 	return s
 
 
 func _rebuild_pieces() -> void:
 	_cancel_hint() # peças serão recriadas; o pulso não pode apontar p/ nós mortos
-	for child in board_node.get_children():
-		if child != select_frame:
-			child.queue_free()
+	for child in _pieces_clip.get_children():
+		child.queue_free()
 	pieces.clear()
 	for r in BoardLogic.ROWS:
 		var row: Array = []
@@ -948,6 +990,7 @@ func _hide_toast() -> void:
 func _show_win() -> void:
 	game_over = true
 	_won_last = true
+	_pause_btn.hide()
 	_update_select_frame()
 	var first: bool = GameState.on_level_won(GameState.current_level)
 	overlay_title.text = "Você venceu!"
@@ -961,6 +1004,7 @@ func _show_win() -> void:
 func _show_lose() -> void:
 	game_over = true
 	_won_last = false
+	_pause_btn.hide()
 	_update_select_frame()
 	GameState.lose_life() # derrota custa 1 vida; sair/desistir não custa
 	overlay_title.text = "Não foi dessa vez..."
@@ -993,6 +1037,72 @@ func _on_continue_pressed() -> void:
 	busy = false
 	overlay_continue.hide()
 	overlay.hide()
+
+
+## Menu de pausa: overlay próprio (layer 30) com process_mode ALWAYS para
+## funcionar com a árvore pausada. Congela tweens, timers e o idle hint.
+func _build_pause_menu() -> void:
+	_pause_layer = CanvasLayer.new()
+	_pause_layer.name = "PauseLayer"
+	_pause_layer.layer = 30
+	_pause_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_pause_layer)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.6)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_pause_layer.add_child(dim)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_pause_layer.add_child(center)
+	var panel := PanelContainer.new()
+	var psb := (UIFactory.tex_style(UIFactory.BAKED + "panel_navy_gold.png") as StyleBoxTexture).duplicate() as StyleBoxTexture
+	psb.content_margin_left = 48.0
+	psb.content_margin_right = 48.0
+	psb.content_margin_top = 40.0
+	psb.content_margin_bottom = 40.0
+	panel.add_theme_stylebox_override("panel", psb)
+	center.add_child(panel)
+	var vbox := VBoxContainer.new()
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_theme_constant_override("separation", 24)
+	panel.add_child(vbox)
+	var title := UIFactory.bubbly("Pausado", 46, UIFactory.NAVY_TXT)
+	vbox.add_child(title)
+	var btn_cont := UIFactory.green_button("Continuar", 30, Vector2(300, 76))
+	btn_cont.pressed.connect(_on_pause_resume)
+	vbox.add_child(btn_cont)
+	var btn_restart := UIFactory.green_button("Reiniciar fase", 30, Vector2(300, 76))
+	btn_restart.pressed.connect(_on_pause_restart)
+	vbox.add_child(btn_restart)
+	var btn_exit := UIFactory.green_button("Sair pro mapa", 30, Vector2(300, 76))
+	btn_exit.pressed.connect(_on_pause_exit)
+	vbox.add_child(btn_exit)
+	_pause_layer.hide()
+
+
+func _on_pause_pressed() -> void:
+	if game_over or overlay.visible:
+		return
+	get_tree().paused = true
+	_pause_layer.show()
+
+
+func _on_pause_resume() -> void:
+	get_tree().paused = false
+	_pause_layer.hide()
+
+
+func _on_pause_restart() -> void:
+	get_tree().paused = false
+	_pause_layer.hide()
+	_restart()
+
+
+func _on_pause_exit() -> void:
+	# Sair no meio da fase: sem custo de vida (só a derrota custa)
+	# e sem recompensa.
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://scenes/level_map.tscn")
 	_update_moves_label()
 	_toast("+%d jogadas!" % GameState.CONTINUE_MOVES)
 

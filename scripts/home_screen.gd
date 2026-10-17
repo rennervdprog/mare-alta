@@ -61,16 +61,19 @@ func _refresh_topbar() -> void:
 
 
 func _build_back() -> void:
+	# Voltar à tela inicial: pílula vinho com seta, cara de navegação intencional.
 	var back := UIFactory.flat_button()
-	back.position = Vector2(16, 128)
-	back.size = Vector2(150, 56)
+	back.position = Vector2(16, 124)
+	back.size = Vector2(184, 60)
 	var pill := Panel.new()
 	pill.add_theme_stylebox_override("panel", UIFactory.tex_style(UIFactory.BAKED + "pill_wine.png"))
 	pill.set_anchors_preset(Control.PRESET_FULL_RECT)
 	pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	back.add_child(pill)
-	var lb := UIFactory.ui_label("Início", 24, UIFactory.CREAM)
+	var lb := UIFactory.ui_label("‹ Início", 26, UIFactory.CREAM)
 	lb.set_anchors_preset(Control.PRESET_FULL_RECT)
+	lb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	lb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	back.add_child(lb)
 	back.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/start_screen.tscn"))
