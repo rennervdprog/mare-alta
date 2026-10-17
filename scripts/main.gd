@@ -13,7 +13,7 @@ const T_CONCHA := 4
 
 const GOAL_COCO := 20
 const GOAL_CONCHA := 20
-const START_MOVES := 20
+const START_MOVES := 15
 
 const TEX_PATHS: Array[String] = [
 	"res://assets/pecas/media-generation-peca-coco-0-4c8ee45f-8fe4-4ba7-a157-87abc63074d9.webp",
@@ -129,7 +129,7 @@ func _build_hud() -> void:
 	add_child(_goals_box)
 	coco_label = _make_goal_row(T_COCO)
 	concha_label = _make_goal_row(T_CONCHA)
-	moves_label = _make_label("Movimentos: 20", 40, Vector2(0, 196), Vector2(720, 56))
+	moves_label = _make_label("Movimentos: 15", 40, Vector2(0, 196), Vector2(720, 56))
 	_make_label("Toque em 2 peças vizinhas ou arraste para trocar", 24, Vector2(0, 1196), Vector2(720, 40))
 	toast_label = _make_label("", 34, Vector2(0, 936), Vector2(720, 60))
 	toast_label.modulate.a = 0.0
