@@ -1,42 +1,109 @@
 extends Control
-## Tela inicial do MARÉ ALTA: logo, botão JOGAR pulsante, topbar e botões secundários.
-## O botão JOGAR leva para a fase (res://main.tscn).
+## Tela inicial do MARÉ ALTA — padrão Royal Kingdom.
+## Topbar em pílula vinho (avatar da Marina vazando, moedas com "+", vidas
+## "Cheio", estrelas, engrenagem), título bubbly Baloo 2, botão JOGAR verde
+## glossy pulsante e tabbar de 5 abas com centro elevado.
+## JOGAR leva para a home (res://scenes/home_screen.tscn).
 
-@onready var _jogar: Button = $BtnJogar
-@onready var _logo_box: VBoxContainer = $LogoBox
-@onready var _toast_panel: PanelContainer = $Toast
-@onready var _toast_label: Label = $Toast/ToastLabel
-@onready var _cloud_label: Label = $CloudLabel
+const KEYART := "res://assets/ui/media-generation-tela-inicial-keyart-0-f07ba8e3-8ee1-4ff0-aaf6-93e84967cc1d.webp"
 
+var _jogar: Button
 var _pulse_tween: Tween = null
-var _toast_tween: Tween = null
+var _logo_box: VBoxContainer
 var _logo_base_y := 0.0
+var _cloud_label: Label
 
 
 func _ready() -> void:
-	_logo_base_y = _logo_box.position.y
+	_build_background()
+	_build_topbar()
+	_build_logo()
+	_build_jogar()
+	_build_tabbar()
+	_build_cloud_label()
 	_start_logo_float()
 	_start_jogar_pulse()
-	# Valores reais do GameState (vidas ainda é placeholder: 5).
-	($TopBar/PillVidas/Row/Label as Label).text = "5"
-	($TopBar/PillEstrelas/Row/Label as Label).text = str(GameState.stars)
-	($TopBar/PillMoedas/Row/Label as Label).text = str(GameState.coins)
+
+
+func _build_background() -> void:
+	var bg := TextureRect.new()
+	bg.texture = load(KEYART) as Texture2D
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	add_child(bg)
+
+
+func _build_topbar() -> void:
+	var tb: Dictionary = UIFactory.topbar()
+	add_child(tb["root"] as Control)
+	(tb["coins"] as Label).text = str(GameState.coins)
+	(tb["stars"] as Label).text = str(GameState.stars)
+	(tb["lives"] as Label).text = "5" # placeholder: sem timer de vidas ainda
+	(tb["gear"] as Button).pressed.connect(_on_config_pressed)
+	(tb["plus"] as Button).pressed.connect(func() -> void: _open_teaser("loja"))
+
+
+func _build_logo() -> void:
+	_logo_box = VBoxContainer.new()
+	_logo_box.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_logo_box.position = Vector2(60, 150)
+	_logo_box.size = Vector2(600, 220)
+	_logo_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	_logo_box.add_theme_constant_override("separation", 2)
+	add_child(_logo_box)
+	var title := UIFactory.bubbly("MARÉ ALTA", 104, Color(0.478, 0.29, 0.0))
+	_logo_box.add_child(title)
+	var sub := UIFactory.bubbly("o quiosque da Marina", 34, Color(0.369, 0.227, 0.0))
+	_logo_box.add_child(sub)
+
+
+func _build_jogar() -> void:
+	_jogar = UIFactory.green_button("JOGAR", 56, Vector2(420, 120))
+	_jogar.position = Vector2(150, 940)
+	_jogar.size = Vector2(420, 120)
+	_jogar.pivot_offset = Vector2(210, 60)
 	_jogar.pressed.connect(_on_jogar_pressed)
 	_jogar.button_down.connect(_on_jogar_down)
 	_jogar.button_up.connect(_on_jogar_up)
-	$TopBar/BtnConfig.pressed.connect(_on_config_pressed)
-	$SecRow/BtnFases.pressed.connect(_on_fases_pressed)
-	$SecRow/BtnPremio.pressed.connect(func() -> void: show_toast("Prêmio diário em breve!"))
-	$SecRow/BtnRanking.pressed.connect(func() -> void: show_toast("Ranking em breve!"))
-	$SecRow/BtnLoja.pressed.connect(func() -> void: show_toast("Loja em breve!"))
+	add_child(_jogar)
+
+
+func _build_tabbar() -> void:
+	var tb: Dictionary = UIFactory.tabbar({"label": "Início", "icon": UIFactory.MAP_ICON})
+	add_child(tb["root"] as Control)
+	var tabs: Dictionary = tb["tabs"] as Dictionary
+	(tabs["loja"] as Button).pressed.connect(func() -> void: _open_teaser("loja"))
+	(tabs["premio"] as Button).pressed.connect(func() -> void: _open_teaser("premio"))
+	(tabs["ranking"] as Button).pressed.connect(func() -> void: _open_teaser("ranking"))
+	(tabs["fases"] as Button).pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/level_map.tscn"))
+	# centro = Início: já estamos aqui.
+
+
+func _build_cloud_label() -> void:
+	_cloud_label = UIFactory.ui_label("", 20, Color(1, 1, 1, 0.75))
+	_cloud_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_cloud_label.position = Vector2(160, 1120)
+	_cloud_label.size = Vector2(400, 30)
+	add_child(_cloud_label)
 	_update_cloud_status()
 	var cs := get_tree().root.get_node_or_null("CloudSync")
 	if cs != null and cs.has_signal("status_changed"):
 		cs.connect("status_changed", _on_cloud_status_changed)
 
 
+func _open_teaser(feature: String) -> void:
+	TeaserScreen.feature = feature
+	TeaserScreen.return_scene = "res://scenes/start_screen.tscn"
+	get_tree().change_scene_to_file("res://scenes/teaser.tscn")
+
+
 func _on_config_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/config_screen.tscn")
+
+
+func _on_jogar_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/home_screen.tscn")
 
 
 func _update_cloud_status() -> void:
@@ -52,6 +119,7 @@ func _on_cloud_status_changed(_text: String) -> void:
 
 
 func _start_logo_float() -> void:
+	_logo_base_y = _logo_box.position.y
 	var t := create_tween().set_loops()
 	t.tween_property(_logo_box, "position:y", _logo_base_y - 10.0, 1.8).set_trans(Tween.TRANS_SINE)
 	t.tween_property(_logo_box, "position:y", _logo_base_y + 6.0, 1.8).set_trans(Tween.TRANS_SINE)
@@ -81,24 +149,3 @@ func _on_jogar_up() -> void:
 	var t := create_tween()
 	t.tween_property(_jogar, "scale", Vector2.ONE, 0.12)
 	t.tween_callback(_start_jogar_pulse)
-
-
-func _on_jogar_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/level_map.tscn")
-
-
-func _on_fases_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/level_map.tscn")
-
-
-func show_toast(msg: String) -> void:
-	_toast_label.text = msg
-	_toast_panel.visible = true
-	if _toast_tween and _toast_tween.is_valid():
-		_toast_tween.kill()
-	_toast_panel.modulate.a = 0.0
-	_toast_tween = create_tween()
-	_toast_tween.tween_property(_toast_panel, "modulate:a", 1.0, 0.25)
-	_toast_tween.tween_interval(1.4)
-	_toast_tween.tween_property(_toast_panel, "modulate:a", 0.0, 0.3)
-	_toast_tween.tween_callback(func() -> void: _toast_panel.visible = false)

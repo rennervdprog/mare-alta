@@ -121,17 +121,18 @@ func _make_label(text: String, font_size: int, pos: Vector2, size: Vector2) -> L
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	l.position = pos
 	l.size = size
+	l.add_theme_font_override("font", UIFactory.f800())
 	l.add_theme_font_size_override("font_size", font_size)
 	l.add_theme_color_override("font_color", Color.WHITE)
 	l.add_theme_color_override("font_outline_color", Color(0.06, 0.28, 0.42))
-	l.add_theme_constant_override("outline_size", 8)
+	l.add_theme_constant_override("outline_size", maxi(2, int(font_size * 0.08)))
 	add_child(l)
 	return l
 
 
 func _make_goal_row(tex_idx: int) -> Label:
 	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 14)
+	hb.add_theme_constant_override("separation", 10)
 	var icon := TextureRect.new()
 	icon.texture = tex[tex_idx]
 	icon.custom_minimum_size = Vector2(56, 56)
@@ -141,10 +142,11 @@ func _make_goal_row(tex_idx: int) -> Label:
 	hb.add_child(icon)
 	var lab := Label.new()
 	lab.text = "0/20"
-	lab.add_theme_font_size_override("font_size", 40)
-	lab.add_theme_color_override("font_color", Color.WHITE)
-	lab.add_theme_color_override("font_outline_color", Color(0.06, 0.28, 0.42))
-	lab.add_theme_constant_override("outline_size", 8)
+	lab.add_theme_font_override("font", UIFactory.f700())
+	lab.add_theme_font_size_override("font_size", 36)
+	lab.add_theme_color_override("font_color", UIFactory.CREAM)
+	lab.add_theme_color_override("font_outline_color", UIFactory.WINE_DK)
+	lab.add_theme_constant_override("outline_size", 4)
 	lab.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	hb.add_child(lab)
 	_goals_box.add_child(hb)
@@ -155,16 +157,51 @@ var _goals_box: HBoxContainer
 
 
 func _build_hud() -> void:
-	_make_label("MARÉ ALTA · Fase %d" % GameState.current_level, 54, Vector2(0, 24), Vector2(720, 84))
+	# Pílula vinho do HUD (padrão Royal Kingdom).
+	var pill := Panel.new()
+	pill.add_theme_stylebox_override("panel", UIFactory.tex_style(UIFactory.BAKED + "pill_wine.png"))
+	pill.position = Vector2(64, 24)
+	pill.size = Vector2(640, 110)
+	add_child(pill)
+	# Retrato do Cláudio vazando da pílula (metade dentro, metade fora).
+	var portrait := TextureRect.new()
+	portrait.texture = load(UIFactory.CLAUDIO_CIRCLE) as Texture2D
+	portrait.position = Vector2(8, 18)
+	portrait.size = Vector2(112, 112)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_SCALE
+	add_child(portrait)
+	# Etiquetas estrandando a borda superior da pílula.
+	var tag_metas := UIFactory.tag_label("Metas")
+	tag_metas.position = Vector2(250, 0)
+	tag_metas.size = Vector2(150, 48)
+	add_child(tag_metas)
+	var tag_jog := UIFactory.tag_label("Jogadas")
+	tag_jog.position = Vector2(510, 0)
+	tag_jog.size = Vector2(150, 48)
+	add_child(tag_jog)
+	# Metas: ícone + contador.
 	_goals_box = HBoxContainer.new()
-	_goals_box.position = Vector2(0, 118)
-	_goals_box.size = Vector2(720, 64)
+	_goals_box.position = Vector2(190, 56)
+	_goals_box.size = Vector2(270, 78)
 	_goals_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	_goals_box.add_theme_constant_override("separation", 64)
+	_goals_box.add_theme_constant_override("separation", 36)
 	add_child(_goals_box)
 	for t in goal_targets.keys():
 		goal_labels[t] = _make_goal_row(int(t))
-	moves_label = _make_label("Movimentos: %d" % moves, 40, Vector2(0, 196), Vector2(720, 56))
+	# Número de jogadas grande.
+	moves_label = Label.new()
+	moves_label.add_theme_font_override("font", UIFactory.f800())
+	moves_label.add_theme_font_size_override("font_size", 64)
+	moves_label.add_theme_color_override("font_color", UIFactory.CREAM)
+	moves_label.add_theme_color_override("font_outline_color", UIFactory.WINE_DK)
+	moves_label.add_theme_constant_override("outline_size", 6)
+	moves_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	moves_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	moves_label.position = Vector2(490, 44)
+	moves_label.size = Vector2(190, 90)
+	moves_label.text = "%d" % moves
+	add_child(moves_label)
 	_make_label("Combine 4+ para criar power-ups!", 24, Vector2(0, 1196), Vector2(720, 40))
 	toast_label = _make_label("", 34, Vector2(0, 936), Vector2(720, 60))
 	toast_label.modulate.a = 0.0
@@ -172,10 +209,7 @@ func _build_hud() -> void:
 
 func _build_board() -> void:
 	var panel := Panel.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(1, 1, 1, 0.22)
-	sb.set_corner_radius_all(28)
-	panel.add_theme_stylebox_override("panel", sb)
+	panel.add_theme_stylebox_override("panel", UIFactory.tex_style(UIFactory.BAKED + "panel_navy_gold.png"))
 	panel.position = Vector2(BOARD_X - 12, BOARD_Y - 12)
 	panel.size = Vector2(BOARD_PX + 24, BOARD_PX + 24)
 	add_child(panel)
@@ -206,23 +240,18 @@ func _build_overlay() -> void:
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(center)
 	var panel := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(1, 1, 1, 0.97)
-	sb.set_corner_radius_all(24)
-	sb.content_margin_left = 48
-	sb.content_margin_right = 48
-	sb.content_margin_top = 40
-	sb.content_margin_bottom = 40
-	panel.add_theme_stylebox_override("panel", sb)
+	var psb := (UIFactory.tex_style(UIFactory.BAKED + "panel_navy_gold.png") as StyleBoxTexture).duplicate() as StyleBoxTexture
+	psb.content_margin_left = 48.0
+	psb.content_margin_right = 48.0
+	psb.content_margin_top = 40.0
+	psb.content_margin_bottom = 40.0
+	panel.add_theme_stylebox_override("panel", psb)
 	center.add_child(panel)
 	var vbox := VBoxContainer.new()
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_theme_constant_override("separation", 24)
 	panel.add_child(vbox)
-	overlay_title = Label.new()
-	overlay_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	overlay_title.add_theme_font_size_override("font_size", 46)
-	overlay_title.add_theme_color_override("font_color", Color(0.06, 0.28, 0.42))
+	overlay_title = UIFactory.bubbly("", 46, UIFactory.NAVY_TXT)
 	vbox.add_child(overlay_title)
 	overlay_star_holder = Control.new()
 	overlay_star_holder.custom_minimum_size = Vector2(140, 140)
@@ -240,13 +269,12 @@ func _build_overlay() -> void:
 	vbox.add_child(overlay_star_holder)
 	overlay_sub = Label.new()
 	overlay_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	overlay_sub.add_theme_font_override("font", UIFactory.f700())
 	overlay_sub.add_theme_font_size_override("font_size", 28)
-	overlay_sub.add_theme_color_override("font_color", Color(0.25, 0.25, 0.30))
+	overlay_sub.add_theme_color_override("font_color", Color(0.85, 0.88, 0.93))
 	vbox.add_child(overlay_sub)
-	overlay_button = Button.new()
-	overlay_button.custom_minimum_size = Vector2(300, 76)
+	overlay_button = UIFactory.green_button("", 30, Vector2(300, 76))
 	overlay_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	overlay_button.add_theme_font_size_override("font_size", 30)
 	overlay_button.pressed.connect(_on_overlay_button)
 	vbox.add_child(overlay_button)
 	overlay.hide()
@@ -828,7 +856,7 @@ func _update_goal_labels() -> void:
 
 
 func _update_moves_label() -> void:
-	moves_label.text = "Movimentos: %d" % moves
+	moves_label.text = "%d" % moves
 
 
 func _toast(msg: String) -> void:
