@@ -135,16 +135,22 @@ static func icon_rect(path: String, size: float) -> TextureRect:
 
 ## Topbar em pílula vinho única: avatar da Marina vazando, moedas com "+",
 ## vidas com "Cheio", estrelas, engrenagem. Retorna refs dos labels/botões.
+## Responsiva: pílula full-width com margens; engrenagem ancorada à direita.
 static func topbar() -> Dictionary:
 	var root := Control.new()
+	root.name = "Topbar"
 	root.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	root.custom_minimum_size = Vector2(720, 140)
+	root.offset_bottom = 140.0
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var pill := Panel.new()
 	pill.add_theme_stylebox_override("panel", tex_style(BAKED + "pill_wine.png"))
-	pill.position = Vector2(16, 44)
-	pill.size = Vector2(688, 68)
+	pill.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	pill.offset_left = 16.0
+	pill.offset_top = 44.0
+	pill.offset_right = -16.0
+	pill.offset_bottom = 112.0
+	pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(pill)
 
 	var avatar := icon_rect(MARINA_CIRCLE, 88)
@@ -198,8 +204,13 @@ static func topbar() -> Dictionary:
 
 	var gear := flat_button()
 	gear.custom_minimum_size = Vector2(56, 56)
-	gear.position = Vector2(632, 50)
-	gear.size = Vector2(56, 56)
+	# Ancorada à direita: acompanha a largura da tela.
+	gear.anchor_left = 1.0
+	gear.anchor_right = 1.0
+	gear.offset_left = -88.0
+	gear.offset_right = -32.0
+	gear.offset_top = 50.0
+	gear.offset_bottom = 106.0
 	var gear_icon := icon_rect(GEAR_ICON, 52)
 	gear_icon.position = Vector2(2, 2)
 	gear.add_child(gear_icon)
@@ -210,13 +221,19 @@ static func topbar() -> Dictionary:
 
 
 ## Toast simples centralizado que some sozinho.
+## Centralizado via rect visível (funciona com parent Node2D ou Control).
 static func toast(parent: Node, msg: String) -> void:
 	var l := bubbly(msg, 30, WINE_DK)
-	l.set_anchors_preset(Control.PRESET_CENTER)
-	l.position = Vector2(-280, -40)
-	l.size = Vector2(560, 80)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(l)
+	if parent is CanvasItem:
+		var vr := (parent as CanvasItem).get_viewport_rect()
+		l.position = vr.get_center() + Vector2(-280, -40)
+		l.size = Vector2(560, 80)
+	else:
+		l.set_anchors_preset(Control.PRESET_CENTER)
+		l.position = Vector2(-280, -40)
+		l.size = Vector2(560, 80)
 	l.modulate.a = 0.0
 	var tw := parent.create_tween()
 	tw.tween_property(l, "modulate:a", 1.0, 0.2)
@@ -230,6 +247,7 @@ static func toast(parent: Node, msg: String) -> void:
 ## Retorna {"root": Control, "tabs": {id: Button}}.
 static func tabbar(center: Dictionary) -> Dictionary:
 	var root := Control.new()
+	root.name = "Tabbar"
 	root.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	root.offset_top = -116.0
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -257,16 +275,16 @@ static func tabbar(center: Dictionary) -> Dictionary:
 		{"id": "ranking", "label": "Ranking", "icon": TROPHY_ICON},
 		{"id": "fases", "label": "Fases", "icon": STAR_ICON},
 	]
-	var xs := [16.0, 158.0, 285.0, 462.0, 592.0]
+	var btns: Array = [] # [Button, is_center] — posicionados por _layout_tabs.
 	for i in defs.size():
 		var d: Dictionary = defs[i]
 		var b := flat_button()
-		if String(d["id"]) == "centro":
+		var is_center := String(d["id"]) == "centro"
+		if is_center:
 			# Aba central elevada: arco vinho+dourado rompendo a barra (~1/3 pra fora).
 			b.add_theme_stylebox_override("normal", tex_style(BAKED + "panel_wine_gold.png"))
 			b.add_theme_stylebox_override("hover", tex_style(BAKED + "panel_wine_gold.png"))
 			b.add_theme_stylebox_override("pressed", tex_style(BAKED + "panel_wine_gold.png"))
-			b.position = Vector2(xs[i], -44)
 			b.size = Vector2(150, 150)
 			var ic := icon_rect(String(d["icon"]), 62)
 			ic.position = Vector2(44, 22)
@@ -277,7 +295,6 @@ static func tabbar(center: Dictionary) -> Dictionary:
 			lb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			b.add_child(lb)
 		else:
-			b.position = Vector2(xs[i], 12)
 			b.size = Vector2(112, 100)
 			var ic2 := icon_rect(String(d["icon"]), 54)
 			ic2.position = Vector2(29, 4)
@@ -289,6 +306,20 @@ static func tabbar(center: Dictionary) -> Dictionary:
 			b.add_child(lb2)
 		root.add_child(b)
 		tabs[String(d["id"])] = b
+		btns.append([b, is_center])
+	# Layout responsivo: 5 slots iguais na largura real; centro elevado.
+	var do_layout := func() -> void:
+		var w: float = root.size.x
+		if w <= 0.0:
+			return
+		var slot := w / 5.0
+		for j in btns.size():
+			var bb: Button = btns[j][0]
+			var cc: bool = btns[j][1]
+			var bw := 150.0 if cc else 112.0
+			bb.position = Vector2(slot * (float(j) + 0.5) - bw * 0.5, -44.0 if cc else 12.0)
+	root.resized.connect(do_layout)
+	do_layout.call_deferred()
 	return {"root": root, "tabs": tabs}
 
 

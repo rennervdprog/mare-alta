@@ -60,8 +60,12 @@ func _build_bg() -> void:
 func _build_sheet(cfg: Dictionary) -> void:
 	var sheet := Panel.new()
 	sheet.add_theme_stylebox_override("panel", UIFactory.tex_style(UIFactory.BAKED + "panel_navy_gold.png"))
-	sheet.position = Vector2(40, 130)
-	sheet.size = Vector2(640, 880)
+	# Centralizada na área acima da tabbar — acompanha qualquer altura de tela.
+	sheet.set_anchors_preset(Control.PRESET_CENTER)
+	sheet.offset_left = -320.0
+	sheet.offset_right = 320.0
+	sheet.offset_top = -440.0
+	sheet.offset_bottom = 440.0
 	add_child(sheet)
 
 	var title := UIFactory.bubbly(String(cfg["title"]), 52, UIFactory.NAVY_TXT)

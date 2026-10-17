@@ -5,20 +5,20 @@ extends Control
 ## - Indicador de status da nuvem (texto simples, sem emoji: a fonte não tem glifos).
 ## OFFLINE-FIRST: sem chave/tabela, tudo mostra "offline" e o jogo segue local.
 
-@onready var _code_label: Label = $Margin/VBox/CardDevice/VBox/DeviceRow/CodeLabel
-@onready var _btn_copiar: Button = $Margin/VBox/CardDevice/VBox/DeviceRow/BtnCopiar
-@onready var _code_edit: LineEdit = $Margin/VBox/CardCode/VBox/CodeRow/CodeEdit
-@onready var _btn_buscar: Button = $Margin/VBox/CardCode/VBox/CodeRow/BtnBuscar
-@onready var _status_label: Label = $Margin/VBox/StatusRow/StatusLabel
-@onready var _hint_label: Label = $Margin/VBox/HintLabel
-@onready var _btn_voltar: Button = $Margin/VBox/BtnVoltar
+@onready var _code_label: Label = $Margin/Scroll/VBox/CardDevice/VBox/DeviceRow/CodeLabel
+@onready var _btn_copiar: Button = $Margin/Scroll/VBox/CardDevice/VBox/DeviceRow/BtnCopiar
+@onready var _code_edit: LineEdit = $Margin/Scroll/VBox/CardCode/VBox/CodeRow/CodeEdit
+@onready var _btn_buscar: Button = $Margin/Scroll/VBox/CardCode/VBox/CodeRow/BtnBuscar
+@onready var _status_label: Label = $Margin/Scroll/VBox/StatusRow/StatusLabel
+@onready var _hint_label: Label = $Margin/Scroll/VBox/HintLabel
+@onready var _btn_voltar: Button = $Margin/Scroll/VBox/BtnVoltar
 @onready var _toast_panel: PanelContainer = $Toast
 @onready var _toast_label: Label = $Toast/ToastLabel
-@onready var _check_sound: CheckButton = $Margin/VBox/CardPrefs/VBox/RowSound/CheckSound
-@onready var _check_music: CheckButton = $Margin/VBox/CardPrefs/VBox/RowMusic/CheckMusic
-@onready var _check_notif: CheckButton = $Margin/VBox/CardPrefs/VBox/RowNotif/CheckNotif
-@onready var _btn_reset: Button = $Margin/VBox/BtnReset
-@onready var _version_label: Label = $Margin/VBox/VersionLabel
+@onready var _check_sound: CheckButton = $Margin/Scroll/VBox/CardPrefs/VBox/RowSound/CheckSound
+@onready var _check_music: CheckButton = $Margin/Scroll/VBox/CardPrefs/VBox/RowMusic/CheckMusic
+@onready var _check_notif: CheckButton = $Margin/Scroll/VBox/CardPrefs/VBox/RowNotif/CheckNotif
+@onready var _btn_reset: Button = $Margin/Scroll/VBox/BtnReset
+@onready var _version_label: Label = $Margin/Scroll/VBox/VersionLabel
 
 var _toast_tween: Tween = null
 var _reset_armed: bool = false

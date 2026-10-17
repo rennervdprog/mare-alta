@@ -61,9 +61,12 @@ func _refresh_topbar() -> void:
 
 func _build_logo() -> void:
 	_logo_box = VBoxContainer.new()
-	_logo_box.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_logo_box.position = Vector2(60, 150)
-	_logo_box.size = Vector2(600, 220)
+	_logo_box.anchor_left = 0.5
+	_logo_box.anchor_right = 0.5
+	_logo_box.offset_left = -300.0
+	_logo_box.offset_right = 300.0
+	_logo_box.offset_top = 150.0
+	_logo_box.offset_bottom = 370.0
 	_logo_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	_logo_box.add_theme_constant_override("separation", 2)
 	add_child(_logo_box)
@@ -75,8 +78,15 @@ func _build_logo() -> void:
 
 func _build_jogar() -> void:
 	_jogar = UIFactory.green_button("JOGAR", 56, Vector2(420, 120))
-	_jogar.position = Vector2(150, 940)
-	_jogar.size = Vector2(420, 120)
+	# Ancorado ao centro, acima da tabbar — acompanha qualquer altura de tela.
+	_jogar.anchor_left = 0.5
+	_jogar.anchor_right = 0.5
+	_jogar.anchor_top = 1.0
+	_jogar.anchor_bottom = 1.0
+	_jogar.offset_left = -210.0
+	_jogar.offset_right = 210.0
+	_jogar.offset_top = -340.0
+	_jogar.offset_bottom = -220.0
 	_jogar.pivot_offset = Vector2(210, 60)
 	_jogar.pressed.connect(_on_jogar_pressed)
 	_jogar.button_down.connect(_on_jogar_down)
@@ -97,9 +107,14 @@ func _build_tabbar() -> void:
 
 func _build_cloud_label() -> void:
 	_cloud_label = UIFactory.ui_label("", 20, Color(1, 1, 1, 0.75))
-	_cloud_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_cloud_label.position = Vector2(160, 1120)
-	_cloud_label.size = Vector2(400, 30)
+	# Canto inferior esquerdo, acima da tabbar — nunca colide com a aba central.
+	_cloud_label.anchor_top = 1.0
+	_cloud_label.anchor_bottom = 1.0
+	_cloud_label.offset_left = 16.0
+	_cloud_label.offset_right = 316.0
+	_cloud_label.offset_top = -170.0
+	_cloud_label.offset_bottom = -140.0
+	_cloud_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	add_child(_cloud_label)
 	_update_cloud_status()
 	var cs := get_tree().root.get_node_or_null("CloudSync")

@@ -110,10 +110,16 @@ func _build_background() -> void:
 	g.set_color(1, Color(0.96, 0.87, 0.66)) # areia
 	g.add_point(0.55, Color(0.55, 0.84, 0.87))
 	grad.gradient = g
-	var bg := Sprite2D.new()
+	# Full-rect manual: cobre qualquer altura de tela (expand).
+	# (Âncoras não resolvem sob Node2D — ver _layout_chrome.)
+	var bg := TextureRect.new()
+	bg.name = "BG"
 	bg.texture = grad
-	bg.position = Vector2(360, 640)
+	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
+	_bg_rect = bg
 
 
 func _make_label(text: String, font_size: int, pos: Vector2, size: Vector2) -> Label:
@@ -156,39 +162,62 @@ func _make_goal_row(tex_idx: int) -> Label:
 
 
 var _goals_box: HBoxContainer
+var _hud_root: Control
+var _board_panel: Panel
+var _bg_rect: TextureRect
+var _hint_label: Label
+
+
+## Posiciona um controle com âncora horizontal proporcional (ax) e offsets.
+func _place_ax(ctrl: Control, parent: Control, ax: float, ox1: float, ox2: float, oy1: float, oy2: float) -> void:
+	ctrl.anchor_left = ax
+	ctrl.anchor_right = ax
+	ctrl.offset_left = ox1
+	ctrl.offset_right = ox2
+	ctrl.offset_top = oy1
+	ctrl.offset_bottom = oy2
+	parent.add_child(ctrl)
 
 
 func _build_hud() -> void:
-	# Pílula vinho do HUD (padrão Royal Kingdom).
+	# Raiz do HUD: faixa superior full-width (padrão Royal Kingdom).
+	# Posicionada manualmente em _layout_chrome (âncoras não resolvem sob Node2D).
+	_hud_root = Control.new()
+	_hud_root.name = "HUD"
+	_hud_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_hud_root)
+	# Pílula vinho do HUD.
 	var pill := Panel.new()
 	pill.add_theme_stylebox_override("panel", UIFactory.tex_style(UIFactory.BAKED + "pill_wine.png"))
-	pill.position = Vector2(64, 24)
-	pill.size = Vector2(640, 110)
-	add_child(pill)
+	pill.anchor_right = 1.0
+	pill.offset_left = 64.0
+	pill.offset_top = 24.0
+	pill.offset_right = -64.0
+	pill.offset_bottom = 134.0
+	pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hud_root.add_child(pill)
 	# Retrato do Cláudio vazando da pílula (metade dentro, metade fora).
 	var portrait := TextureRect.new()
 	portrait.texture = load(UIFactory.CLAUDIO_CIRCLE) as Texture2D
-	portrait.position = Vector2(8, 18)
-	portrait.size = Vector2(112, 112)
+	portrait.offset_left = 8.0
+	portrait.offset_top = 18.0
+	portrait.offset_right = 120.0
+	portrait.offset_bottom = 130.0
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_SCALE
-	add_child(portrait)
-	# Etiquetas estrandando a borda superior da pílula.
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hud_root.add_child(portrait)
+	# Etiquetas estrandando a borda superior da pílula (posições proporcionais).
 	var tag_metas := UIFactory.tag_label("Metas")
-	tag_metas.position = Vector2(250, 0)
-	tag_metas.size = Vector2(150, 48)
-	add_child(tag_metas)
+	_place_ax(tag_metas, _hud_root, 0.45, -75.0, 75.0, 0.0, 48.0)
 	var tag_jog := UIFactory.tag_label("Jogadas")
-	tag_jog.position = Vector2(510, 0)
-	tag_jog.size = Vector2(150, 48)
-	add_child(tag_jog)
+	_place_ax(tag_jog, _hud_root, 0.81, -75.0, 75.0, 0.0, 48.0)
 	# Metas: ícone + contador.
 	_goals_box = HBoxContainer.new()
-	_goals_box.position = Vector2(190, 56)
-	_goals_box.size = Vector2(270, 78)
+	_place_ax(_goals_box, _hud_root, 0.45, -135.0, 135.0, 56.0, 134.0)
 	_goals_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	_goals_box.add_theme_constant_override("separation", 36)
-	add_child(_goals_box)
+	_goals_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for t in goal_targets.keys():
 		goal_labels[t] = _make_goal_row(int(t))
 	# Número de jogadas grande.
@@ -200,23 +229,42 @@ func _build_hud() -> void:
 	moves_label.add_theme_constant_override("outline_size", 6)
 	moves_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	moves_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	moves_label.position = Vector2(490, 44)
-	moves_label.size = Vector2(190, 90)
+	_place_ax(moves_label, _hud_root, 0.81, -95.0, 95.0, 44.0, 134.0)
+	moves_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	moves_label.text = "%d" % moves
-	add_child(moves_label)
-	_make_label("Combine 4+ para criar power-ups!", 24, Vector2(0, 1196), Vector2(720, 40))
+	var hint_label := _make_label("Combine 4+ para criar power-ups!", 24, Vector2(0, 1196), Vector2(720, 40))
+	_hint_label = hint_label
 	toast_label = _make_label("", 34, Vector2(0, 936), Vector2(720, 60))
 	toast_label.modulate.a = 0.0
+	_layout_chrome()
+	get_tree().root.size_changed.connect(_layout_chrome)
+
+
+## Posiciona o chrome da fase (fundo, HUD, labels) no rect visível.
+## Necessário porque âncoras de Control não resolvem sob Node2D.
+func _layout_chrome() -> void:
+	var vr := get_viewport_rect()
+	if is_instance_valid(_bg_rect):
+		_bg_rect.position = vr.position
+		_bg_rect.size = vr.size
+	if is_instance_valid(_hud_root):
+		_hud_root.position = vr.position
+		_hud_root.size = Vector2(vr.size.x, 170.0)
+	if is_instance_valid(_hint_label):
+		_hint_label.position = Vector2(vr.position.x, vr.end.y - 84.0)
+		_hint_label.size = Vector2(vr.size.x, 40.0)
+	if toast_label != null and is_instance_valid(toast_label):
+		toast_label.position = Vector2(vr.position.x, vr.end.y - 344.0)
+		toast_label.size = Vector2(vr.size.x, 60.0)
+	_layout_board()
 
 
 func _build_board() -> void:
-	var panel := Panel.new()
-	panel.add_theme_stylebox_override("panel", UIFactory.tex_style(UIFactory.BAKED + "panel_navy_gold.png"))
-	panel.position = Vector2(BOARD_X - 12, BOARD_Y - 12)
-	panel.size = Vector2(BOARD_PX + 24, BOARD_PX + 24)
-	add_child(panel)
+	_board_panel = Panel.new()
+	_board_panel.name = "BoardPanel"
+	_board_panel.add_theme_stylebox_override("panel", UIFactory.tex_style(UIFactory.BAKED + "panel_navy_gold.png"))
+	add_child(_board_panel)
 	board_node = Node2D.new()
-	board_node.position = Vector2(BOARD_X, BOARD_Y)
 	add_child(board_node)
 	select_frame = Panel.new()
 	var fsb := StyleBoxFlat.new()
@@ -228,6 +276,21 @@ func _build_board() -> void:
 	select_frame.size = Vector2(CELL, CELL)
 	select_frame.visible = false
 	board_node.add_child(select_frame)
+	_layout_chrome()
+
+
+## Centraliza o tabuleiro na área visível (abaixo do HUD), em qualquer altura.
+func _layout_board() -> void:
+	if board_node == null:
+		return
+	var vr := get_viewport_rect()
+	var bx := (vr.size.x - BOARD_PX) * 0.5
+	var top := 180.0
+	var by := top + maxf(0.0, (vr.size.y - top - BOARD_PX) * 0.5)
+	board_node.position = Vector2(bx, by)
+	if is_instance_valid(_board_panel):
+		_board_panel.position = Vector2(bx - 12.0, by - 12.0)
+		_board_panel.size = Vector2(BOARD_PX + 24.0, BOARD_PX + 24.0)
 
 
 func _build_overlay() -> void:
@@ -775,25 +838,30 @@ func _play_fx(fx: Array) -> void:
 			if String(e.get("shape", "")) == "square":
 				_shake(8.0) # Trovão: área grande merece impacto
 		elif kind == "sol_fire":
-			_fx_flash(Rect2(BOARD_X, BOARD_Y, BOARD_PX, BOARD_PX), 0.6)
+			_fx_flash(Rect2(_board_origin(), Vector2(BOARD_PX, BOARD_PX)), 0.6)
 		elif kind == "combo":
-			_fx_flash(Rect2(BOARD_X, BOARD_Y, BOARD_PX, BOARD_PX), 0.8)
+			_fx_flash(Rect2(_board_origin(), Vector2(BOARD_PX, BOARD_PX)), 0.8)
 			_shake(12.0)
+
+
+func _board_origin() -> Vector2:
+	return board_node.position if board_node != null else Vector2(BOARD_X, BOARD_Y)
 
 
 func _blast_rect(e: Dictionary) -> Rect2:
 	var shape: String = String(e.get("shape", "square"))
 	var center: Vector2i = e["center"]
+	var bo := _board_origin()
 	if shape == "cross":
 		# Retornado como dois flashes: desenha o retângulo envolvente da cruz
 		# (linha + coluna inteiras) via dois rects; aqui um só: usa dois flashes.
-		_fx_flash(Rect2(BOARD_X, BOARD_Y + center.y * CELL, BOARD_PX, CELL), 0.4)
-		return Rect2(BOARD_X + center.x * CELL, BOARD_Y, CELL, BOARD_PX)
+		_fx_flash(Rect2(bo.x, bo.y + center.y * CELL, BOARD_PX, CELL), 0.4)
+		return Rect2(bo.x + center.x * CELL, bo.y, CELL, BOARD_PX)
 	var radius: int = int(e.get("radius", 2))
-	var x0: float = BOARD_X + maxf(0.0, float(center.x - radius)) * CELL
-	var y0: float = BOARD_Y + maxf(0.0, float(center.y - radius)) * CELL
-	var x1: float = BOARD_X + minf(7.0, float(center.x + radius)) * CELL + CELL
-	var y1: float = BOARD_Y + minf(7.0, float(center.y + radius)) * CELL + CELL
+	var x0: float = bo.x + maxf(0.0, float(center.x - radius)) * CELL
+	var y0: float = bo.y + maxf(0.0, float(center.y - radius)) * CELL
+	var x1: float = bo.x + minf(7.0, float(center.x + radius)) * CELL + CELL
+	var y1: float = bo.y + minf(7.0, float(center.y + radius)) * CELL + CELL
 	return Rect2(x0, y0, x1 - x0, y1 - y0)
 
 

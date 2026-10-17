@@ -18,8 +18,7 @@ func _ready() -> void:
 	_build_topbar()
 	_build_back()
 	_build_strip(area_id, area)
-	_build_pedestals(area_id)
-	_build_fase_button()
+	_build_bottom_block(area_id)
 	_build_tabbar()
 	_start_pulse()
 
@@ -83,39 +82,59 @@ func _build_strip(area_id: int, area: Dictionary) -> void:
 	var n := GameState.unlocked_level - from + 1
 	var pill := Panel.new()
 	pill.add_theme_stylebox_override("panel", UIFactory.tex_style(UIFactory.BAKED + "pill_wine.png"))
-	pill.position = Vector2(110, 200)
-	pill.size = Vector2(500, 64)
+	pill.anchor_left = 0.5
+	pill.anchor_right = 0.5
+	pill.offset_left = -250.0
+	pill.offset_right = 250.0
+	pill.offset_top = 200.0
+	pill.offset_bottom = 264.0
 	add_child(pill)
 	var lb := UIFactory.bubbly("%s · %d de 60" % [SHORT_NAMES[area_id - 1], n], 30, UIFactory.WINE_DK)
-	lb.position = Vector2(110, 200)
-	lb.size = Vector2(500, 64)
+	lb.anchor_left = 0.5
+	lb.anchor_right = 0.5
+	lb.offset_left = -250.0
+	lb.offset_right = 250.0
+	lb.offset_top = 200.0
+	lb.offset_bottom = 264.0
 	lb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(lb)
 
 
-func _build_pedestals(area_id: int) -> void:
+## Bloco inferior responsivo: pedestais lado a lado + botão Fase X,
+## tudo ancorado ao fundo, acima da tabbar, em qualquer altura de tela.
+func _build_bottom_block(area_id: int) -> void:
+	var vbox := VBoxContainer.new()
+	vbox.anchor_left = 0.5
+	vbox.anchor_right = 0.5
+	vbox.anchor_top = 1.0
+	vbox.anchor_bottom = 1.0
+	vbox.offset_left = -300.0
+	vbox.offset_right = 300.0
+	vbox.offset_top = -520.0
+	vbox.offset_bottom = -180.0
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_theme_constant_override("separation", 24)
+	add_child(vbox)
+	var hbox := HBoxContainer.new()
+	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	hbox.add_theme_constant_override("separation", 60)
+	vbox.add_child(hbox)
 	var mundo := UIFactory.pedestal(UIFactory.MAP_ICON, "Mundo")
-	mundo.position = Vector2(180, 620)
 	mundo.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/level_map.tscn"))
-	add_child(mundo)
+	hbox.add_child(mundo)
 	var reforma := UIFactory.pedestal(UIFactory.GIFT_ICON, "Reforma")
-	reforma.position = Vector2(390, 620)
 	reforma.pressed.connect(func() -> void: _on_reforma(area_id))
-	add_child(reforma)
+	hbox.add_child(reforma)
+	_fase_btn = UIFactory.green_button("Fase %d" % GameState.unlocked_level, 52, Vector2(400, 120))
+	_fase_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_fase_btn.pivot_offset = Vector2(200, 60)
+	_fase_btn.pressed.connect(_on_fase_pressed)
+	vbox.add_child(_fase_btn)
 
 
 func _on_reforma(area_id: int) -> void:
 	GameState.current_area = area_id
 	get_tree().change_scene_to_file("res://scenes/renovation.tscn")
-
-
-func _build_fase_button() -> void:
-	_fase_btn = UIFactory.green_button("Fase %d" % GameState.unlocked_level, 52, Vector2(400, 120))
-	_fase_btn.position = Vector2(160, 930)
-	_fase_btn.size = Vector2(400, 120)
-	_fase_btn.pivot_offset = Vector2(200, 60)
-	_fase_btn.pressed.connect(_on_fase_pressed)
-	add_child(_fase_btn)
 
 
 func _on_fase_pressed() -> void:
