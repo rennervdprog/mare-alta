@@ -473,6 +473,18 @@ const AREAS: Array = [
 
 const SAVE_PATH := "user://save.cfg"
 
+## ---- Economia (ajuste fácil) ----
+const COIN_WIN_REWARD := 20    # moedas por vitória de fase (qualquer vitória)
+const COIN_CHEST_REWARD := 100 # moedas por baú de área
+const CONTINUE_COST := 40       # moedas para continuar na derrota
+const CONTINUE_MOVES := 5       # jogadas ganhas ao continuar
+
+## ---- Vidas (ajuste fácil) ----
+const LIVES_MAX := 5
+const LIVES_REGEN_MINUTES := 20 # 1 vida a cada 20 min, offline-first
+
+const GAME_VERSION := "1.0.0"
+
 ## Caminho do save (sobrescrito nos testes para não tocar no save real).
 var save_path: String = SAVE_PATH
 
@@ -485,6 +497,13 @@ var tasks_done: Array = []      # ids de tarefa (String)
 var current_area: int = 1
 var chests_claimed: Dictionary = {} # área (int) -> true
 var intros_seen: Array = []         # ids de área (int) cuja intro já foi vista
+
+# ------------------------------------------------------------ vidas/opts
+var lives: int = LIVES_MAX
+var lives_ts: int = 0 # unix time do início da contagem p/ próxima vida (0 = cheio)
+var opt_sound: bool = true
+var opt_music: bool = true
+var opt_notifications: bool = true
 
 ## LEGADO (área 1): espelho de chests_claimed[1]. Mantido para o renovation.gd
 ## atual não quebrar; código novo deve usar chests_claimed / claim_chest_area(a).
@@ -516,11 +535,13 @@ func level_won_before(n: int) -> bool:
 
 
 ## Registra vitória. Retorna true se foi a PRIMEIRA vitória (vale +1 estrela).
+## Toda vitória paga COIN_WIN_REWARD moedas.
 func on_level_won(n: int) -> bool:
 	var first := not level_won_before(n)
 	levels_won[n] = true
 	if first:
 		stars += 1
+	coins += COIN_WIN_REWARD
 	unlocked_level = maxi(unlocked_level, mini(n + 1, MAX_LEVEL))
 	save_game()
 	return first
@@ -534,6 +555,104 @@ func spend_star() -> bool:
 	return true
 
 
+# ------------------------------------------------------------ vidas
+
+func _lives_interval() -> int:
+	return LIVES_REGEN_MINUTES * 60
+
+
+## Recalcula as vidas pelo tempo decorrido (offline-first). `now` = unix time;
+## -1 usa o relógio do sistema. Retorna as vidas atuais.
+func refresh_lives(now: int = -1) -> int:
+	var t := now if now >= 0 else int(Time.get_unix_time_from_system())
+	if lives >= LIVES_MAX:
+		lives = LIVES_MAX
+		lives_ts = 0
+		return lives
+	if lives_ts <= 0:
+		# Save antigo sem timestamp: começa a contar agora, sem crédito grátis.
+		lives_ts = t
+		return lives
+	var elapsed := t - lives_ts
+	if elapsed <= 0:
+		return lives
+	var credit := elapsed / _lives_interval()
+	if credit > 0:
+		lives = mini(lives + credit, LIVES_MAX)
+		if lives >= LIVES_MAX:
+			lives_ts = 0
+		else:
+			lives_ts += credit * _lives_interval()
+		save_game()
+	return lives
+
+
+## True se pode iniciar uma fase (credita a regen antes).
+func can_play(now: int = -1) -> bool:
+	return refresh_lives(now) > 0
+
+
+## Segundos até a próxima vida (0 se cheio).
+func time_to_next_life(now: int = -1) -> int:
+	var t := now if now >= 0 else int(Time.get_unix_time_from_system())
+	refresh_lives(t)
+	if lives >= LIVES_MAX:
+		return 0
+	return maxi(_lives_interval() - (t - lives_ts), 0)
+
+
+## Texto para a topbar: "Cheio" ou "mm:ss" até a próxima vida.
+func lives_display(now: int = -1) -> String:
+	var s := time_to_next_life(now)
+	if s <= 0:
+		return "Cheio"
+	return "%02d:%02d" % [s / 60, s % 60]
+
+
+## Consome 1 vida ao FALHAR a fase. Sair/desistir não custa. False se sem vidas.
+func lose_life(now: int = -1) -> bool:
+	var t := now if now >= 0 else int(Time.get_unix_time_from_system())
+	refresh_lives(t)
+	if lives <= 0:
+		return false
+	if lives >= LIVES_MAX:
+		lives_ts = t # estava cheio: começa a contar a regen agora
+	lives -= 1
+	save_game()
+	return true
+
+
+# ------------------------------------------------------------ moedas
+
+func add_coins(n: int, motivo: String = "") -> void:
+	coins += n
+	save_game()
+
+
+## Retorna false (sem alterar nada) se o saldo for insuficiente.
+func spend_coins(n: int) -> bool:
+	if n < 0 or coins < n:
+		return false
+	coins -= n
+	save_game()
+	return true
+
+
+# ------------------------------------------------------------ configurações
+
+func set_opt(key: String, value: bool) -> void:
+	match key:
+		"sound":
+			opt_sound = value
+		"music":
+			opt_music = value
+		"notifications":
+			opt_notifications = value
+		_:
+			return
+	save_game()
+
+
 func complete_task(task_id: String) -> void:
 	if not tasks_done.has(task_id):
 		tasks_done.append(task_id)
@@ -542,11 +661,6 @@ func complete_task(task_id: String) -> void:
 
 func task_done(task_id: String) -> bool:
 	return tasks_done.has(task_id)
-
-
-func add_coins(n: int) -> void:
-	coins += n
-	save_game()
 
 
 ## Marca o baú da área `a` como resgatado (sem moedas: quem dá as moedas é quem chama).
@@ -635,6 +749,11 @@ func get_cloud_data() -> Dictionary:
 		"tasks_done": tasks_done.duplicate(),
 		"chests_claimed": chests_claimed.keys(),
 		"intros_seen": intros_seen.duplicate(),
+		"lives": lives,
+		"lives_ts": lives_ts,
+		"opt_sound": opt_sound,
+		"opt_music": opt_music,
+		"opt_notifications": opt_notifications,
 	}
 
 
@@ -656,6 +775,11 @@ func apply_cloud_data(d: Dictionary) -> void:
 	if bool(d.get("chest_claimed", false)):
 		chests_claimed[1] = true
 	intros_seen = Array(d.get("intros_seen", []))
+	lives = clampi(int(d.get("lives", lives)), 0, LIVES_MAX)
+	lives_ts = int(d.get("lives_ts", lives_ts))
+	opt_sound = bool(d.get("opt_sound", opt_sound))
+	opt_music = bool(d.get("opt_music", opt_music))
+	opt_notifications = bool(d.get("opt_notifications", opt_notifications))
 	_write_save()
 
 
@@ -682,6 +806,11 @@ func _write_save() -> void:
 	cfg.set_value("progress", "tasks_done", tasks_done)
 	cfg.set_value("progress", "chests_claimed", chests_claimed.keys())
 	cfg.set_value("progress", "intros_seen", intros_seen)
+	cfg.set_value("progress", "lives", lives)
+	cfg.set_value("progress", "lives_ts", lives_ts)
+	cfg.set_value("settings", "sound", opt_sound)
+	cfg.set_value("settings", "music", opt_music)
+	cfg.set_value("settings", "notifications", opt_notifications)
 	cfg.save(save_path)
 
 
@@ -704,6 +833,12 @@ func load_game() -> void:
 	if bool(cfg.get_value("progress", "chest_claimed", false)):
 		chests_claimed[1] = true
 	intros_seen = Array(cfg.get_value("progress", "intros_seen", []))
+	lives = clampi(int(cfg.get_value("progress", "lives", LIVES_MAX)), 0, LIVES_MAX)
+	lives_ts = int(cfg.get_value("progress", "lives_ts", 0))
+	opt_sound = bool(cfg.get_value("settings", "sound", true))
+	opt_music = bool(cfg.get_value("settings", "music", true))
+	opt_notifications = bool(cfg.get_value("settings", "notifications", true))
+	refresh_lives() # credita regen offline ao carregar
 
 
 func reset_progress() -> void:
@@ -716,4 +851,9 @@ func reset_progress() -> void:
 	current_area = 1
 	chests_claimed = {}
 	intros_seen = []
+	lives = LIVES_MAX
+	lives_ts = 0
+	opt_sound = true
+	opt_music = true
+	opt_notifications = true
 	save_game()

@@ -14,19 +14,31 @@ extends Control
 @onready var _btn_voltar: Button = $Margin/VBox/BtnVoltar
 @onready var _toast_panel: PanelContainer = $Toast
 @onready var _toast_label: Label = $Toast/ToastLabel
+@onready var _check_sound: CheckButton = $Margin/VBox/CardPrefs/VBox/RowSound/CheckSound
+@onready var _check_music: CheckButton = $Margin/VBox/CardPrefs/VBox/RowMusic/CheckMusic
+@onready var _check_notif: CheckButton = $Margin/VBox/CardPrefs/VBox/RowNotif/CheckNotif
+@onready var _btn_reset: Button = $Margin/VBox/BtnReset
+@onready var _version_label: Label = $Margin/VBox/VersionLabel
 
 var _toast_tween: Tween = null
+var _reset_armed: bool = false
 
 
 func _ready() -> void:
 	_refresh_from_cloud()
+	_sync_opt_checks()
+	_version_label.text = "MARÉ ALTA v" + GameState.GAME_VERSION
 	var cs := _cloud()
 	if cs != null and cs.has_signal("status_changed"):
 		cs.connect("status_changed", _on_cloud_status)
 	_btn_copiar.pressed.connect(_on_copiar)
 	_btn_buscar.pressed.connect(_on_buscar)
 	_btn_voltar.pressed.connect(_on_voltar)
+	_btn_reset.pressed.connect(_on_reset_pressed)
 	_code_edit.text_changed.connect(_on_code_text_changed)
+	_check_sound.toggled.connect(func(on: bool) -> void: GameState.set_opt("sound", on))
+	_check_music.toggled.connect(func(on: bool) -> void: GameState.set_opt("music", on))
+	_check_notif.toggled.connect(func(on: bool) -> void: GameState.set_opt("notifications", on))
 
 
 func _cloud() -> Node:
@@ -94,6 +106,35 @@ func _on_fetch_done(success: bool, msg: String) -> void:
 
 func _on_voltar() -> void:
 	get_tree().change_scene_to_file("res://scenes/start_screen.tscn")
+
+
+## Sincroniza os toggles com o GameState (sem disparar o sinal toggled).
+func _sync_opt_checks() -> void:
+	_check_sound.set_pressed_no_signal(GameState.opt_sound)
+	_check_music.set_pressed_no_signal(GameState.opt_music)
+	_check_notif.set_pressed_no_signal(GameState.opt_notifications)
+
+
+## Apagar progresso com confirmação dupla (segundo toque em até 5s).
+func _on_reset_pressed() -> void:
+	if not _reset_armed:
+		_reset_armed = true
+		_btn_reset.text = "Toque de novo para confirmar"
+		show_toast("Apagar TODO o progresso? Toque de novo.")
+		get_tree().create_timer(5.0).timeout.connect(_disarm_reset)
+		return
+	_reset_armed = false
+	_btn_reset.text = "Apagar progresso"
+	GameState.reset_progress()
+	_sync_opt_checks()
+	_refresh_from_cloud()
+	show_toast("Progresso apagado.")
+
+
+func _disarm_reset() -> void:
+	_reset_armed = false
+	if is_instance_valid(_btn_reset):
+		_btn_reset.text = "Apagar progresso"
 
 
 func show_toast(msg: String) -> void:

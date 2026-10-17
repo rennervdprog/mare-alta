@@ -205,8 +205,24 @@ static func topbar() -> Dictionary:
 	gear.add_child(gear_icon)
 	root.add_child(gear)
 
-	return {"root": root, "coins": coins, "lives": lives, "stars": stars,
+	return {"root": root, "coins": coins, "lives": lives, "full": full, "stars": stars,
 		"gear": gear, "plus": plus}
+
+
+## Toast simples centralizado que some sozinho.
+static func toast(parent: Node, msg: String) -> void:
+	var l := bubbly(msg, 30, WINE_DK)
+	l.set_anchors_preset(Control.PRESET_CENTER)
+	l.position = Vector2(-280, -40)
+	l.size = Vector2(560, 80)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(l)
+	l.modulate.a = 0.0
+	var tw := parent.create_tween()
+	tw.tween_property(l, "modulate:a", 1.0, 0.2)
+	tw.tween_interval(1.6)
+	tw.tween_property(l, "modulate:a", 0.0, 0.4)
+	tw.tween_callback(l.queue_free)
 
 
 ## Tabbar de 5 abas com centro elevado rompendo a barra.

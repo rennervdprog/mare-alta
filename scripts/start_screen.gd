@@ -12,6 +12,7 @@ var _pulse_tween: Tween = null
 var _logo_box: VBoxContainer
 var _logo_base_y := 0.0
 var _cloud_label: Label
+var _tb: Dictionary = {}
 
 
 func _ready() -> void:
@@ -35,13 +36,27 @@ func _build_background() -> void:
 
 
 func _build_topbar() -> void:
-	var tb: Dictionary = UIFactory.topbar()
-	add_child(tb["root"] as Control)
-	(tb["coins"] as Label).text = str(GameState.coins)
-	(tb["stars"] as Label).text = str(GameState.stars)
-	(tb["lives"] as Label).text = "5" # placeholder: sem timer de vidas ainda
-	(tb["gear"] as Button).pressed.connect(_on_config_pressed)
-	(tb["plus"] as Button).pressed.connect(func() -> void: _open_teaser("loja"))
+	_tb = UIFactory.topbar()
+	add_child(_tb["root"] as Control)
+	(_tb["gear"] as Button).pressed.connect(_on_config_pressed)
+	(_tb["plus"] as Button).pressed.connect(func() -> void: _open_teaser("loja"))
+	_refresh_topbar()
+	var timer := Timer.new()
+	timer.wait_time = 1.0
+	timer.timeout.connect(_refresh_topbar)
+	add_child(timer)
+	timer.start()
+
+
+## Atualiza moedas/estrelas/vidas; vidas mostram "Cheio" ou o mm:ss da próxima.
+func _refresh_topbar() -> void:
+	if _tb.is_empty():
+		return
+	GameState.refresh_lives()
+	(_tb["coins"] as Label).text = str(GameState.coins)
+	(_tb["stars"] as Label).text = str(GameState.stars)
+	(_tb["lives"] as Label).text = str(GameState.lives)
+	(_tb["full"] as Label).text = GameState.lives_display()
 
 
 func _build_logo() -> void:

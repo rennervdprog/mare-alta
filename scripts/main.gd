@@ -59,6 +59,8 @@ var overlay_title: Label
 var overlay_sub: Label
 var overlay_star_holder: Control
 var overlay_button: Button
+var overlay_continue: Button
+var _continued: bool = false # continuar pago só 1x por tentativa
 
 
 func _tex_index(ptype: int) -> int:
@@ -277,6 +279,11 @@ func _build_overlay() -> void:
 	overlay_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	overlay_button.pressed.connect(_on_overlay_button)
 	vbox.add_child(overlay_button)
+	overlay_continue = UIFactory.green_button("", 30, Vector2(300, 76))
+	overlay_continue.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	overlay_continue.pressed.connect(_on_continue_pressed)
+	overlay_continue.hide()
+	vbox.add_child(overlay_continue)
 	overlay.hide()
 
 
@@ -879,6 +886,7 @@ func _show_win() -> void:
 	overlay_sub.text = "Você ganhou 1 estrela!" if first else "Fase concluída!"
 	overlay_star_holder.visible = true
 	overlay_button.text = "Continuar"
+	overlay_continue.hide()
 	overlay.show()
 
 
@@ -886,6 +894,7 @@ func _show_lose() -> void:
 	game_over = true
 	_won_last = false
 	_update_select_frame()
+	GameState.lose_life() # derrota custa 1 vida; sair/desistir não custa
 	overlay_title.text = "Não foi dessa vez..."
 	var parts := PackedStringArray()
 	for t in goal_targets.keys():
@@ -895,7 +904,29 @@ func _show_lose() -> void:
 	overlay_sub.text = "Faltaram " + " e ".join(parts) + "."
 	overlay_star_holder.visible = false
 	overlay_button.text = "Voltar ao mapa"
+	# Continuar: +5 jogadas por 40 moedas, 1x por tentativa, sem custo de vida.
+	if not _continued and GameState.coins >= GameState.CONTINUE_COST:
+		overlay_continue.text = "Continuar +5 (%d)" % GameState.CONTINUE_COST
+		overlay_continue.show()
+	else:
+		overlay_continue.hide()
 	overlay.show()
+
+
+func _on_continue_pressed() -> void:
+	if _continued or game_over == false:
+		return
+	if not GameState.spend_coins(GameState.CONTINUE_COST):
+		overlay_continue.hide()
+		return
+	_continued = true
+	moves += GameState.CONTINUE_MOVES
+	game_over = false
+	busy = false
+	overlay_continue.hide()
+	overlay.hide()
+	_update_moves_label()
+	_toast("+%d jogadas!" % GameState.CONTINUE_MOVES)
 
 
 func _on_overlay_button() -> void:
@@ -905,6 +936,8 @@ func _on_overlay_button() -> void:
 
 func _restart() -> void:
 	moves = int(level_cfg["moves"])
+	_continued = false
+	overlay_continue.hide()
 	for t in goal_targets.keys():
 		goal_counts[t] = 0
 	game_over = false

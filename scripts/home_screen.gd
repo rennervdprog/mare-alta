@@ -8,6 +8,7 @@ const SHORT_NAMES := ["Praia", "Bar", "Cozinha", "Deck", "Palco"]
 
 var _fase_btn: Button
 var _pulse_tween: Tween = null
+var _tb: Dictionary = {}
 
 
 func _ready() -> void:
@@ -38,13 +39,26 @@ func _build_background(area: Dictionary) -> void:
 
 
 func _build_topbar() -> void:
-	var tb: Dictionary = UIFactory.topbar()
-	add_child(tb["root"] as Control)
-	(tb["coins"] as Label).text = str(GameState.coins)
-	(tb["stars"] as Label).text = str(GameState.stars)
-	(tb["lives"] as Label).text = "5"
-	(tb["gear"] as Button).pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/config_screen.tscn"))
-	(tb["plus"] as Button).pressed.connect(func() -> void: _open_teaser("loja"))
+	_tb = UIFactory.topbar()
+	add_child(_tb["root"] as Control)
+	(_tb["gear"] as Button).pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/config_screen.tscn"))
+	(_tb["plus"] as Button).pressed.connect(func() -> void: _open_teaser("loja"))
+	_refresh_topbar()
+	var timer := Timer.new()
+	timer.wait_time = 1.0
+	timer.timeout.connect(_refresh_topbar)
+	add_child(timer)
+	timer.start()
+
+
+func _refresh_topbar() -> void:
+	if _tb.is_empty():
+		return
+	GameState.refresh_lives()
+	(_tb["coins"] as Label).text = str(GameState.coins)
+	(_tb["stars"] as Label).text = str(GameState.stars)
+	(_tb["lives"] as Label).text = str(GameState.lives)
+	(_tb["full"] as Label).text = GameState.lives_display()
 
 
 func _build_back() -> void:
@@ -105,6 +119,9 @@ func _build_fase_button() -> void:
 
 
 func _on_fase_pressed() -> void:
+	if not GameState.can_play():
+		UIFactory.toast(self, "Sem vidas! Próxima em %s" % GameState.lives_display())
+		return
 	GameState.current_level = GameState.unlocked_level
 	get_tree().change_scene_to_file("res://main.tscn")
 

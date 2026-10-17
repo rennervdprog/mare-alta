@@ -347,6 +347,9 @@ func _on_reform_pressed() -> void:
 
 
 func _on_level_pressed(n: int) -> void:
+	if not GameState.can_play():
+		UIFactory.toast(self, "Sem vidas! Próxima em %s" % GameState.lives_display())
+		return
 	GameState.current_level = n
 	get_tree().change_scene_to_file("res://main.tscn")
 

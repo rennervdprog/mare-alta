@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/config_screen.gd" id="1_cfg"]
 
@@ -40,6 +40,13 @@ content_margin_left = 28.0
 content_margin_top = 14.0
 content_margin_right = 28.0
 content_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_danger"]
+bg_color = Color(0.75, 0.16, 0.2, 1)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
 
 [node name="ConfigScreen" type="Control"]
 layout_mode = 3
@@ -174,8 +181,69 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_btn_small")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_small")
 text = "Buscar"
 
-[node name="StatusRow" type="HBoxContainer" parent="Margin/VBox"]
+[node name="CardPrefs" type="PanelContainer" parent="Margin/VBox"]
 layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/VBox/CardPrefs"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="H1" type="Label" parent="Margin/VBox/CardPrefs/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1, 0.2, 0.25, 1)
+theme_override_font_sizes/font_size = 30
+text = "Preferências"
+
+[node name="RowSound" type="HBoxContainer" parent="Margin/VBox/CardPrefs/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Lbl" type="Label" parent="Margin/VBox/CardPrefs/VBox/RowSound"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.1, 0.2, 0.25, 1)
+theme_override_font_sizes/font_size = 28
+text = "Sons"
+vertical_alignment = 1
+
+[node name="CheckSound" type="CheckButton" parent="Margin/VBox/CardPrefs/VBox/RowSound"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+
+[node name="RowMusic" type="HBoxContainer" parent="Margin/VBox/CardPrefs/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Lbl" type="Label" parent="Margin/VBox/CardPrefs/VBox/RowMusic"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.1, 0.2, 0.25, 1)
+theme_override_font_sizes/font_size = 28
+text = "Música"
+vertical_alignment = 1
+
+[node name="CheckMusic" type="CheckButton" parent="Margin/VBox/CardPrefs/VBox/RowMusic"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+
+[node name="RowNotif" type="HBoxContainer" parent="Margin/VBox/CardPrefs/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Lbl" type="Label" parent="Margin/VBox/CardPrefs/VBox/RowNotif"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.1, 0.2, 0.25, 1)
+theme_override_font_sizes/font_size = 28
+text = "Notificações"
+vertical_alignment = 1
+
+[node name="CheckNotif" type="CheckButton" parent="Margin/VBox/CardPrefs/VBox/RowNotif"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+
+[node name="StatusRow" type="HBoxContainer" parent="Margin/VBox"]layout_mode = 2
 theme_override_constants/separation = 12
 alignment = 1
 
@@ -198,6 +266,25 @@ theme_override_font_sizes/font_size = 22
 text = "Nuvem desativada: sem chave configurada."
 horizontal_alignment = 1
 autowrap_mode = 2
+
+[node name="BtnReset" type="Button" parent="Margin/VBox"]
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_danger")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_danger")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_danger")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_danger")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_danger")
+text = "Apagar progresso"
+
+[node name="VersionLabel" type="Label" parent="Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.75)
+theme_override_font_sizes/font_size = 22
+text = "MARÉ ALTA v1.0.0"
+horizontal_alignment = 1
 
 [node name="Spacer" type="Control" parent="Margin/VBox"]
 layout_mode = 2
