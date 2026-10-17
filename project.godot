@@ -8,7 +8,7 @@ config_version=5
 
 config/name="Maré Alta"
 config/description="Match-3 praiano brasileiro - Fase 1: núcleo jogável."
-run/main_scene="res://main.tscn"
+run/main_scene="res://scenes/start_screen.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 

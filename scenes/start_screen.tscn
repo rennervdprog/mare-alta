@@ -1,0 +1,297 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/start_screen.gd" id="1_start"]
+[ext_resource type="Texture2D" path="res://assets/ui/media-generation-tela-inicial-keyart-0-f07ba8e3-8ee1-4ff0-aaf6-93e84967cc1d.webp" id="2_keyart"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pill"]
+bg_color = Color(1, 1, 1, 0.93)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
+content_margin_left = 18.0
+content_margin_top = 8.0
+content_margin_right = 18.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jogar"]
+bg_color = Color(1, 0.62, 0.12, 1)
+corner_radius_top_left = 60
+corner_radius_top_right = 60
+corner_radius_bottom_right = 60
+corner_radius_bottom_left = 60
+shadow_color = Color(0.78, 0.35, 0.04, 1)
+shadow_size = 0
+shadow_offset = Vector2(0, 7)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jogar_pressed"]
+bg_color = Color(0.9, 0.52, 0.08, 1)
+corner_radius_top_left = 60
+corner_radius_top_right = 60
+corner_radius_bottom_right = 60
+corner_radius_bottom_left = 60
+shadow_color = Color(0.78, 0.35, 0.04, 1)
+shadow_size = 0
+shadow_offset = Vector2(0, 3)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_round"]
+bg_color = Color(1, 1, 1, 0.95)
+corner_radius_top_left = 56
+corner_radius_top_right = 56
+corner_radius_bottom_right = 56
+corner_radius_bottom_left = 56
+shadow_color = Color(0, 0, 0, 0.16)
+shadow_size = 0
+shadow_offset = Vector2(0, 4)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_badge"]
+bg_color = Color(1, 0.23, 0.23, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_toast"]
+bg_color = Color(0.055, 0.29, 0.39, 0.95)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
+content_margin_left = 28.0
+content_margin_top = 14.0
+content_margin_right = 28.0
+content_margin_bottom = 14.0
+
+[node name="StartScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_start")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_keyart")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="TopBar" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 84.0
+grow_horizontal = 2
+theme_override_constants/separation = 12
+
+[node name="PillVidas" type="PanelContainer" parent="TopBar"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_pill")
+
+[node name="Label" type="Label" parent="TopBar/PillVidas"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.055, 0.29, 0.39, 1)
+theme_override_font_sizes/font_size = 28
+text = "Vidas: 5"
+
+[node name="Spacer" type="Control" parent="TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PillEstrelas" type="PanelContainer" parent="TopBar"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_pill")
+
+[node name="Label" type="Label" parent="TopBar/PillEstrelas"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.055, 0.29, 0.39, 1)
+theme_override_font_sizes/font_size = 28
+text = "Estrelas: 0"
+
+[node name="PillMoedas" type="PanelContainer" parent="TopBar"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_pill")
+
+[node name="Label" type="Label" parent="TopBar/PillMoedas"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.055, 0.29, 0.39, 1)
+theme_override_font_sizes/font_size = 28
+text = "Moedas: 120"
+
+[node name="BtnConfig" type="Button" parent="TopBar"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.055, 0.29, 0.39, 1)
+theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = SubResource("StyleBoxFlat_pill")
+theme_override_styles/hover = SubResource("StyleBoxFlat_pill")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_pill")
+theme_override_styles/focus = SubResource("StyleBoxFlat_pill")
+text = "Config"
+
+[node name="LogoBox" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -340.0
+offset_top = 108.0
+offset_right = 340.0
+offset_bottom = 330.0
+grow_horizontal = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="LogoLabel" type="Label" parent="LogoBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.055, 0.43, 0.62, 1)
+theme_override_colors/font_shadow_color = Color(0.03, 0.24, 0.35, 0.6)
+theme_override_constants/outline_size = 14
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 6
+theme_override_font_sizes/font_size = 104
+text = "MARÉ ALTA"
+horizontal_alignment = 1
+
+[node name="SubLabel" type="Label" parent="LogoBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.055, 0.29, 0.39, 1)
+theme_override_font_sizes/font_size = 34
+text = "o quiosque da Marina"
+horizontal_alignment = 1
+
+[node name="BtnJogar" type="Button" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -210.0
+offset_top = 950.0
+offset_right = 210.0
+offset_bottom = 1070.0
+grow_horizontal = 2
+pivot_offset = Vector2(210, 60)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.59, 0.24, 0, 0.6)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 56
+theme_override_styles/normal = SubResource("StyleBoxFlat_jogar")
+theme_override_styles/hover = SubResource("StyleBoxFlat_jogar")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_jogar_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_jogar")
+text = "JOGAR"
+
+[node name="SecRow" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -260.0
+offset_top = 1110.0
+offset_right = 260.0
+offset_bottom = 1222.0
+grow_horizontal = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="BtnFases" type="Button" parent="SecRow"]
+custom_minimum_size = Vector2(112, 112)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.055, 0.29, 0.39, 1)
+theme_override_colors/font_hover_color = Color(0.055, 0.29, 0.39, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_round")
+theme_override_styles/hover = SubResource("StyleBoxFlat_round")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_round")
+theme_override_styles/focus = SubResource("StyleBoxFlat_round")
+text = "Fases"
+
+[node name="BtnPremio" type="Button" parent="SecRow"]
+custom_minimum_size = Vector2(112, 112)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.055, 0.29, 0.39, 1)
+theme_override_colors/font_hover_color = Color(0.055, 0.29, 0.39, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_round")
+theme_override_styles/hover = SubResource("StyleBoxFlat_round")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_round")
+theme_override_styles/focus = SubResource("StyleBoxFlat_round")
+text = "Prêmio"
+
+[node name="Badge" type="Label" parent="SecRow/BtnPremio"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -36.0
+offset_top = -12.0
+offset_right = -8.0
+offset_bottom = 16.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 20
+theme_override_styles/normal = SubResource("StyleBoxFlat_badge")
+text = "1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BtnRanking" type="Button" parent="SecRow"]
+custom_minimum_size = Vector2(112, 112)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.055, 0.29, 0.39, 1)
+theme_override_colors/font_hover_color = Color(0.055, 0.29, 0.39, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_round")
+theme_override_styles/hover = SubResource("StyleBoxFlat_round")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_round")
+theme_override_styles/focus = SubResource("StyleBoxFlat_round")
+text = "Ranking"
+
+[node name="BtnLoja" type="Button" parent="SecRow"]
+custom_minimum_size = Vector2(112, 112)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.055, 0.29, 0.39, 1)
+theme_override_colors/font_hover_color = Color(0.055, 0.29, 0.39, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_round")
+theme_override_styles/hover = SubResource("StyleBoxFlat_round")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_round")
+theme_override_styles/focus = SubResource("StyleBoxFlat_round")
+text = "Loja"
+
+[node name="Toast" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = 60.0
+offset_right = 280.0
+offset_bottom = 140.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_toast")
+
+[node name="ToastLabel" type="Label" parent="Toast"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 30
+text = "..."
+horizontal_alignment = 1
+vertical_alignment = 1
