@@ -6,6 +6,7 @@ extends Control
 @onready var _logo_box: VBoxContainer = $LogoBox
 @onready var _toast_panel: PanelContainer = $Toast
 @onready var _toast_label: Label = $Toast/ToastLabel
+@onready var _cloud_label: Label = $CloudLabel
 
 var _pulse_tween: Tween = null
 var _toast_tween: Tween = null
@@ -23,11 +24,31 @@ func _ready() -> void:
 	_jogar.pressed.connect(_on_jogar_pressed)
 	_jogar.button_down.connect(_on_jogar_down)
 	_jogar.button_up.connect(_on_jogar_up)
-	$TopBar/BtnConfig.pressed.connect(func() -> void: show_toast("Configurações em breve!"))
+	$TopBar/BtnConfig.pressed.connect(_on_config_pressed)
 	$SecRow/BtnFases.pressed.connect(_on_fases_pressed)
 	$SecRow/BtnPremio.pressed.connect(func() -> void: show_toast("Prêmio diário em breve!"))
 	$SecRow/BtnRanking.pressed.connect(func() -> void: show_toast("Ranking em breve!"))
 	$SecRow/BtnLoja.pressed.connect(func() -> void: show_toast("Loja em breve!"))
+	_update_cloud_status()
+	var cs := get_tree().root.get_node_or_null("CloudSync")
+	if cs != null and cs.has_signal("status_changed"):
+		cs.connect("status_changed", _on_cloud_status_changed)
+
+
+func _on_config_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/config_screen.tscn")
+
+
+func _update_cloud_status() -> void:
+	var cs := get_tree().root.get_node_or_null("CloudSync")
+	if cs != null and cs.has_method("get_status_text"):
+		_cloud_label.text = str(cs.call("get_status_text"))
+	else:
+		_cloud_label.text = ""
+
+
+func _on_cloud_status_changed(_text: String) -> void:
+	_update_cloud_status()
 
 
 func _start_logo_float() -> void:

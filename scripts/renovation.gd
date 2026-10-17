@@ -1,11 +1,12 @@
 extends Control
-## Tela de reforma — Área 1 "A ressaca: limpar a praia".
-## Mostra a arte ANTES; 5 tarefas de 1 estrela cada; a cada tarefa concluída
-## um sparkle; ao completar as 5, crossfade para o DEPOIS, diálogo do
-## Capítulo 1 e baú (+100 moedas).
+## Tela de reforma parametrizada por GameState.current_area (1-5).
+## Título/subtítulo, artes before/after, 8 tarefas, intro e capítulo vêm de
+## GameState.AREAS. 8 tarefas de 1 estrela cada; sparkle por tarefa concluída;
+## ao completar as 8, crossfade para o DEPOIS, diálogo do capítulo `story`
+## da área (com retratos) e baú (+100 moedas, claim_chest_area).
+## Após o baú da ÁREA 5: tela final ("A história da Marina continua...").
+## SEM EMOJI (a fonte do Godot não tem glifos de emoji — só texto).
 
-const ART_BEFORE := "res://assets/ui/areas/media-generation-area1-praia-antes-0-3d214f1a-86f2-4856-b1a6-9cf14fd5cb2e.webp"
-const ART_AFTER := "res://assets/ui/areas/media-generation-area1-praia-depois-0-0a894c4e-8a1a-4e82-ab14-d86b5d5cf38c.webp"
 const STAR_ICON := "res://assets/ui/icons/media-generation-icon-estrela-0-f26c7110-ac23-448a-93d7-821c08f3c61b.webp"
 const GIFT_ICON := "res://assets/ui/icons/media-generation-icon-presente-0-9bbdb947-3fc7-4a0a-b2a7-acd94afb67d3.webp"
 const PORTRAITS := {
@@ -15,22 +16,11 @@ const PORTRAITS := {
 	"Seu Waldomiro": "res://assets/ui/portraits/media-generation-seu-waldomiro-concept-0-e2d6a7f3-a77f-41fc-9573-f39f46eeca1f.webp",
 	"Cláudio": "res://assets/ui/portraits/media-generation-claudio-concept-0-e4da328c-d12c-4d4a-9017-6613be600fd9.webp",
 }
-const TASKS: Array = [
-	["task_rubble", "Recolher o entulho da areia"],
-	["task_chairs", "Desentortar as espreguiçadeiras"],
-	["task_deck", "Varrer o deck do quiosque"],
-	["task_plants", "Replantar a vegetação"],
-	["task_flag", "Içar a bandeira do quiosque"],
-]
-const STORY: Array = [
-	["Marina", "Não acredito... o quiosque do vovô..."],
-	["Seu Toninho", "A ressaca levou metade do telhado, minha neta. Mas quiosque se reconstrói. O importante é que você veio."],
-	["Marina", "Eu vou levantar esse quiosque de novo, vô. Nem que seja com as minhas próprias mãos!"],
-	["Bia", "E com as minhas! Trouxe meu açaí e minha força de vontade!"],
-	["Seu Waldomiro", "Hah! Vão precisar de mais que força de vontade... vão precisar de um milagre!"],
-	["Marina", "Pode anotar, Waldomiro: até o fim do verão, o MARÉ ALTA vai reabrir. E vai ser o quiosque mais bonito dessa praia!"],
-	["Cláudio", "Mas o que a Marina ainda não sabia... é que o Waldomiro tinha um plano para impedir a reforma."],
-]
+
+var _area := 1
+var _cfg: Dictionary = {}
+var _tasks: Array = []
+var _story: Array = []
 
 var _art_after: TextureRect
 var _stars_label: Label
@@ -41,44 +31,61 @@ var _dlg_name: Label
 var _dlg_text: Label
 var _dlg_index := 0
 var _chest_opened := false
+var _finale: Control
 var _toast_label: Label
 var _toast_tween: Tween
 
 
 func _ready() -> void:
+	_area = clampi(int(GameState.current_area), 1, 5)
+	_cfg = GameState.AREAS[_area - 1]
+	_tasks = GameState.area_tasks(_area)
+	_story = GameState.area_story(_area)
 	_build_scene()
+	_build_finale()
 	_refresh_tasks()
 	_refresh_stars()
+	if not GameState.area_unlocked(_area):
+		_toast("Complete a reforma da área anterior!")
+		await get_tree().create_timer(1.2).timeout
+		get_tree().change_scene_to_file("res://scenes/level_map.tscn")
+		return
 	if _all_done():
 		_show_after_instant()
-		if not GameState.chest_claimed:
+		if not _chest_done():
 			_show_chest()
+		elif _area == 5:
+			_show_finale()
+
+
+func _chest_done() -> bool:
+	return bool(GameState.chests_claimed.get(_area, false))
 
 
 func _build_scene() -> void:
 	var before := TextureRect.new()
-	before.texture = load(ART_BEFORE)
+	before.texture = load(_cfg["before"])
 	before.set_anchors_preset(Control.PRESET_FULL_RECT)
 	before.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	before.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	add_child(before)
 	_art_after = TextureRect.new()
-	_art_after.texture = load(ART_AFTER)
+	_art_after.texture = load(_cfg["after"])
 	_art_after.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_art_after.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_art_after.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	_art_after.modulate.a = 0.0
 	add_child(_art_after)
-	# Título.
+	# Título da área.
 	var title := Label.new()
-	title.text = "Área 1 — A ressaca"
+	title.text = "Área %d — %s" % [int(_cfg["id"]), str(_cfg["name"])]
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.position = Vector2(0, 36)
 	title.size = Vector2(720, 70)
 	_style_label(title, 52)
 	add_child(title)
 	var sub := Label.new()
-	sub.text = "limpar a praia"
+	sub.text = str(_cfg["subtitle"])
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.position = Vector2(0, 104)
 	sub.size = Vector2(720, 50)
@@ -106,13 +113,13 @@ func _build_scene() -> void:
 	hb.add_child(_stars_label)
 	pill.add_child(hb)
 	add_child(pill)
-	# Lista de tarefas.
+	# Lista de tarefas (8).
 	var list := VBoxContainer.new()
-	list.position = Vector2(40, 260)
-	list.size = Vector2(640, 560)
-	list.add_theme_constant_override("separation", 16)
+	list.position = Vector2(40, 250)
+	list.size = Vector2(640, 700)
+	list.add_theme_constant_override("separation", 10)
 	add_child(list)
-	for t in TASKS:
+	for t in _tasks:
 		list.add_child(_make_task_row(t[0], t[1]))
 	# Voltar.
 	var back := Button.new()
@@ -130,7 +137,7 @@ func _build_scene() -> void:
 	# Toast.
 	_toast_label = Label.new()
 	_toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_toast_label.position = Vector2(60, 880)
+	_toast_label.position = Vector2(60, 990)
 	_toast_label.size = Vector2(600, 60)
 	_style_label(_toast_label, 30)
 	_toast_label.modulate.a = 0.0
@@ -147,7 +154,7 @@ func _style_label(l: Label, size: int) -> void:
 
 func _make_task_row(task_id: String, text: String) -> Button:
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(640, 92)
+	b.custom_minimum_size = Vector2(640, 76)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(1, 1, 1, 0.94)
 	sb.set_corner_radius_all(20)
@@ -163,34 +170,35 @@ func _make_task_row(task_id: String, text: String) -> Button:
 	hb.alignment = BoxContainer.ALIGNMENT_CENTER
 	var cost_icon := TextureRect.new()
 	cost_icon.texture = load(STAR_ICON)
-	cost_icon.custom_minimum_size = Vector2(48, 48)
+	cost_icon.custom_minimum_size = Vector2(44, 44)
 	cost_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	cost_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	cost_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hb.add_child(cost_icon)
 	var cost := Label.new()
 	cost.text = "1"
-	cost.add_theme_font_size_override("font_size", 32)
+	cost.add_theme_font_size_override("font_size", 30)
 	cost.add_theme_color_override("font_color", Color(0.06, 0.28, 0.42))
 	cost.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hb.add_child(cost)
 	var lab := Label.new()
 	lab.text = text
-	lab.custom_minimum_size = Vector2(430, 0)
+	lab.custom_minimum_size = Vector2(400, 0)
 	lab.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	lab.add_theme_font_size_override("font_size", 28)
+	lab.add_theme_font_size_override("font_size", 26)
 	lab.add_theme_color_override("font_color", Color(0.06, 0.28, 0.42))
 	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hb.add_child(lab)
 	var status := Label.new()
 	status.name = "Status"
 	status.text = ""
-	status.add_theme_font_size_override("font_size", 40)
+	status.add_theme_font_size_override("font_size", 38)
 	status.add_theme_color_override("font_color", Color(0.15, 0.65, 0.3))
 	status.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hb.add_child(status)
 	b.add_child(hb)
-	b.pressed.connect(func() -> void: _on_task_pressed(task_id, b))
+	var tid := task_id
+	b.pressed.connect(func() -> void: _on_task_pressed(tid, b))
 	_task_rows[task_id] = {"button": b, "status": status}
 	return b
 
@@ -200,14 +208,14 @@ func _refresh_stars() -> void:
 
 
 func _refresh_tasks() -> void:
-	for t in TASKS:
+	for t in _tasks:
 		var task_id: String = t[0]
 		var status: Label = _task_rows[task_id]["status"]
 		status.text = "✓" if GameState.task_done(task_id) else ""
 
 
 func _all_done() -> bool:
-	for t in TASKS:
+	for t in _tasks:
 		if not GameState.task_done(t[0]):
 			return false
 	return true
@@ -355,7 +363,7 @@ func _show_story() -> void:
 
 
 func _show_story_line() -> void:
-	var line: Array = STORY[_dlg_index]
+	var line: Array = _story[_dlg_index]
 	_dlg_name.text = line[0]
 	_dlg_text.text = line[1]
 	_dlg_portrait.texture = load(PORTRAITS[line[0]])
@@ -364,7 +372,7 @@ func _show_story_line() -> void:
 func _on_overlay_tap() -> void:
 	if _overlay.get_node("Dialog").visible:
 		_dlg_index += 1
-		if _dlg_index >= STORY.size():
+		if _dlg_index >= _story.size():
 			_overlay.get_node("Dialog").visible = false
 			_show_chest()
 		else:
@@ -372,6 +380,7 @@ func _on_overlay_tap() -> void:
 
 
 func _show_chest() -> void:
+	_chest_opened = false
 	_overlay.visible = true
 	_overlay.get_node("Dialog").visible = false
 	(_overlay.get_node("Chest") as VBoxContainer).visible = true
@@ -390,10 +399,13 @@ func _on_chest_opened() -> void:
 	tw.tween_property(gift, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK)
 	_sparkle(gift.get_global_rect().get_center())
 	GameState.add_coins(100)
-	GameState.claim_chest()
+	GameState.claim_chest_area(_area)
 	var clab: Label = _overlay.get_node("Chest/ChestLabel")
 	clab.text = "+100 moedas!"
 	await get_tree().create_timer(1.2).timeout
+	if _area == 5:
+		_show_finale()
+		return
 	# Botão voltar ao mapa.
 	var back := Button.new()
 	back.text = "Voltar ao mapa"
@@ -408,3 +420,53 @@ func _on_chest_opened() -> void:
 	back.custom_minimum_size = Vector2(360, 84)
 	chest.add_child(back)
 	back.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/level_map.tscn"))
+
+
+# ------------------------------------------------------------- tela final
+
+func _build_finale() -> void:
+	_finale = Control.new()
+	_finale.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_finale.visible = false
+	add_child(_finale)
+	var dim := ColorRect.new()
+	dim.color = Color(0.05, 0.2, 0.32, 0.92)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_finale.add_child(dim)
+	var vb := VBoxContainer.new()
+	vb.position = Vector2(60, 380)
+	vb.size = Vector2(600, 560)
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_theme_constant_override("separation", 28)
+	_finale.add_child(vb)
+	var title := Label.new()
+	title.text = "A história da Marina continua..."
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_style_label(title, 56)
+	vb.add_child(title)
+	var sub := Label.new()
+	sub.text = "Aguarde as próximas atualizações!"
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_style_label(sub, 36)
+	vb.add_child(sub)
+	var back := Button.new()
+	back.text = "Voltar ao mapa"
+	back.add_theme_font_size_override("font_size", 34)
+	back.add_theme_color_override("font_color", Color.WHITE)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(1.0, 0.55, 0.15)
+	sb.set_corner_radius_all(24)
+	sb.border_width_bottom = 6
+	sb.border_color = Color(0.75, 0.38, 0.08)
+	back.add_theme_stylebox_override("normal", sb)
+	back.custom_minimum_size = Vector2(360, 84)
+	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	back.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/level_map.tscn"))
+	vb.add_child(back)
+
+
+func _show_finale() -> void:
+	_overlay.visible = false
+	_finale.visible = true
+	_sparkle(Vector2(360, 640))

@@ -28,3 +28,4 @@ renderer/rendering_method.mobile="gl_compatibility"
 [autoload]
 
 GameState="*res://scripts/game_state.gd"
+CloudSync="*res://scripts/cloud_sync.gd"

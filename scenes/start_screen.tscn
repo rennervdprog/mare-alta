@@ -330,3 +330,19 @@ theme_override_font_sizes/font_size = 30
 text = "..."
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="CloudLabel" type="Label" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -70.0
+offset_right = 200.0
+offset_bottom = -38.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.75)
+theme_override_font_sizes/font_size = 22
+text = ""
+horizontal_alignment = 1

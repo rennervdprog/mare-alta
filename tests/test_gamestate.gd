@@ -79,7 +79,9 @@ func _t_unlock_progression() -> void:
 	gs.on_level_won(2)
 	_check(gs.unlocked_level == 3, "vencer fase 2 desbloqueia fase 3")
 	gs.on_level_won(10)
-	_check(gs.unlocked_level == 10, "nao passa da fase 10")
+	_check(gs.unlocked_level == 11, "vencer fase 10 desbloqueia fase 11 (teto agora é 300)")
+	gs.on_level_won(300)
+	_check(gs.unlocked_level == 300, "nao passa da fase 300")
 
 
 func _t_spend_star() -> void:
