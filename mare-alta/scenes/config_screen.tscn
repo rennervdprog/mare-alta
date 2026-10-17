@@ -1,0 +1,373 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/config_screen.gd" id="1_cfg"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+bg_color = Color(1, 1, 1, 0.97)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
+content_margin_left = 28.0
+content_margin_top = 24.0
+content_margin_right = 28.0
+content_margin_bottom = 24.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn"]
+bg_color = Color(1, 0.62, 0.12, 1)
+corner_radius_top_left = 32
+corner_radius_top_right = 32
+corner_radius_bottom_right = 32
+corner_radius_bottom_left = 32
+shadow_color = Color(0.78, 0.35, 0.04, 1)
+shadow_size = 0
+shadow_offset = Vector2(0, 5)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_small"]
+bg_color = Color(0.055, 0.29, 0.39, 1)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_toast"]
+bg_color = Color(0.055, 0.29, 0.39, 0.95)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
+content_margin_left = 28.0
+content_margin_top = 14.0
+content_margin_right = 28.0
+content_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_danger"]
+bg_color = Color(0.75, 0.16, 0.2, 1)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_toggle_on"]
+bg_color = Color(0.34, 0.66, 0.0, 1)
+corner_radius_top_left = 32
+corner_radius_top_right = 32
+corner_radius_bottom_right = 32
+corner_radius_bottom_left = 32
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_toggle_off"]
+bg_color = Color(0.55, 0.6, 0.65, 1)
+corner_radius_top_left = 32
+corner_radius_top_right = 32
+corner_radius_bottom_right = 32
+corner_radius_bottom_left = 32
+
+[node name="ConfigScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_cfg")
+
+[node name="Bg" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.06, 0.42, 0.55, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 36.0
+offset_top = 60.0
+offset_right = -36.0
+offset_bottom = -48.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Scroll" type="ScrollContainer" parent="Margin"]
+layout_mode = 2
+horizontal_scroll_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="Margin/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 28
+
+[node name="Title" type="Label" parent="Margin/Scroll/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 52
+text = "Configurações"
+horizontal_alignment = 1
+
+[node name="CardDevice" type="PanelContainer" parent="Margin/Scroll/VBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/Scroll/VBox/CardDevice"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="H1" type="Label" parent="Margin/Scroll/VBox/CardDevice/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1, 0.2, 0.25, 1)
+theme_override_font_sizes/font_size = 30
+text = "Jogar em outro dispositivo"
+
+[node name="Desc" type="Label" parent="Margin/Scroll/VBox/CardDevice/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 0.42, 0.47, 1)
+theme_override_font_sizes/font_size = 24
+text = "No outro aparelho, abra Configurações e digite este código:"
+autowrap_mode = 2
+
+[node name="DeviceRow" type="HBoxContainer" parent="Margin/Scroll/VBox/CardDevice/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="CodeLabel" type="Label" parent="Margin/Scroll/VBox/CardDevice/VBox/DeviceRow"]
+custom_minimum_size = Vector2(0, 88)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.055, 0.29, 0.39, 1)
+theme_override_font_sizes/font_size = 44
+text = "--------"
+vertical_alignment = 1
+
+[node name="BtnCopiar" type="Button" parent="Margin/Scroll/VBox/CardDevice/VBox/DeviceRow"]
+custom_minimum_size = Vector2(170, 88)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_small")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_small")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_small")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_small")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_small")
+text = "Copiar"
+
+[node name="CardCode" type="PanelContainer" parent="Margin/Scroll/VBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/Scroll/VBox/CardCode"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="H1" type="Label" parent="Margin/Scroll/VBox/CardCode/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1, 0.2, 0.25, 1)
+theme_override_font_sizes/font_size = 30
+text = "Usar código de outro dispositivo"
+
+[node name="Desc" type="Label" parent="Margin/Scroll/VBox/CardCode/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 0.42, 0.47, 1)
+theme_override_font_sizes/font_size = 24
+text = "Digite o código mostrado no outro aparelho:"
+autowrap_mode = 2
+
+[node name="CodeRow" type="HBoxContainer" parent="Margin/Scroll/VBox/CardCode/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="CodeEdit" type="LineEdit" parent="Margin/Scroll/VBox/CardCode/VBox/CodeRow"]
+custom_minimum_size = Vector2(0, 88)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 40
+placeholder_text = "ABCDEFGH"
+max_length = 8
+alignment = 1
+
+[node name="BtnBuscar" type="Button" parent="Margin/Scroll/VBox/CardCode/VBox/CodeRow"]
+custom_minimum_size = Vector2(170, 88)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_small")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_small")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_small")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_small")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_small")
+text = "Buscar"
+
+[node name="CardPrefs" type="PanelContainer" parent="Margin/Scroll/VBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/Scroll/VBox/CardPrefs"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="H1" type="Label" parent="Margin/Scroll/VBox/CardPrefs/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1, 0.2, 0.25, 1)
+theme_override_font_sizes/font_size = 30
+text = "Preferências"
+
+[node name="RowSound" type="HBoxContainer" parent="Margin/Scroll/VBox/CardPrefs/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Lbl" type="Label" parent="Margin/Scroll/VBox/CardPrefs/VBox/RowSound"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.1, 0.2, 0.25, 1)
+theme_override_font_sizes/font_size = 28
+text = "Sons"
+vertical_alignment = 1
+
+[node name="CheckSound" type="Button" parent="Margin/Scroll/VBox/CardPrefs/VBox/RowSound"]
+custom_minimum_size = Vector2(200, 64)
+layout_mode = 2
+toggle_mode = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = SubResource("StyleBoxFlat_toggle_off")
+theme_override_styles/hover = SubResource("StyleBoxFlat_toggle_off")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_toggle_on")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_toggle_on")
+theme_override_styles/focus = SubResource("StyleBoxFlat_toggle_off")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_toggle_off")
+text = "Desligado"
+
+[node name="RowMusic" type="HBoxContainer" parent="Margin/Scroll/VBox/CardPrefs/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Lbl" type="Label" parent="Margin/Scroll/VBox/CardPrefs/VBox/RowMusic"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.1, 0.2, 0.25, 1)
+theme_override_font_sizes/font_size = 28
+text = "Música"
+vertical_alignment = 1
+
+[node name="CheckMusic" type="Button" parent="Margin/Scroll/VBox/CardPrefs/VBox/RowMusic"]
+custom_minimum_size = Vector2(200, 64)
+layout_mode = 2
+toggle_mode = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = SubResource("StyleBoxFlat_toggle_off")
+theme_override_styles/hover = SubResource("StyleBoxFlat_toggle_off")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_toggle_on")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_toggle_on")
+theme_override_styles/focus = SubResource("StyleBoxFlat_toggle_off")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_toggle_off")
+text = "Desligado"
+
+[node name="RowNotif" type="HBoxContainer" parent="Margin/Scroll/VBox/CardPrefs/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Lbl" type="Label" parent="Margin/Scroll/VBox/CardPrefs/VBox/RowNotif"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.1, 0.2, 0.25, 1)
+theme_override_font_sizes/font_size = 28
+text = "Notificações"
+vertical_alignment = 1
+
+[node name="CheckNotif" type="Button" parent="Margin/Scroll/VBox/CardPrefs/VBox/RowNotif"]
+custom_minimum_size = Vector2(200, 64)
+layout_mode = 2
+toggle_mode = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = SubResource("StyleBoxFlat_toggle_off")
+theme_override_styles/hover = SubResource("StyleBoxFlat_toggle_off")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_toggle_on")
+theme_override_styles/focus = SubResource("StyleBoxFlat_toggle_off")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_toggle_off")
+text = "Desligado"
+
+[node name="StatusRow" type="HBoxContainer" parent="Margin/Scroll/VBox"]layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Label" type="Label" parent="Margin/Scroll/VBox/StatusRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 26
+text = "Nuvem:"
+
+[node name="StatusLabel" type="Label" parent="Margin/Scroll/VBox/StatusRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 26
+text = "offline"
+
+[node name="HintLabel" type="Label" parent="Margin/Scroll/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.8)
+theme_override_font_sizes/font_size = 22
+text = "Nuvem desativada: sem chave configurada."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="BtnReset" type="Button" parent="Margin/Scroll/VBox"]
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_danger")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_danger")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_danger")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_danger")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_danger")
+text = "Apagar progresso"
+
+[node name="VersionLabel" type="Label" parent="Margin/Scroll/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.75)
+theme_override_font_sizes/font_size = 22
+text = "MARÉ ALTA v1.0.0"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="Margin/Scroll/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BtnVoltar" type="Button" parent="Margin/Scroll/VBox"]
+custom_minimum_size = Vector2(0, 110)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 34
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn")
+text = "Voltar"
+
+[node name="Toast" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = 60.0
+offset_right = 280.0
+offset_bottom = 140.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_toast")
+
+[node name="ToastLabel" type="Label" parent="Toast"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 30
+text = "..."
+horizontal_alignment = 1
+vertical_alignment = 1
