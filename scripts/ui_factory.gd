@@ -160,8 +160,17 @@ static func topbar() -> Dictionary:
 	coins.size = Vector2(90, 60)
 	coins.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	root.add_child(coins)
-	var plus := green_button("+", 26, Vector2(34, 34))
-	plus.position = Vector2(232, 61)
+	var plus := flat_button()
+	plus.add_theme_stylebox_override("normal", tex_style(BAKED + "btn_green.png"))
+	plus.add_theme_stylebox_override("hover", tex_style(BAKED + "btn_green.png"))
+	plus.add_theme_stylebox_override("pressed", tex_style(BAKED + "btn_green_pressed.png"))
+	plus.add_theme_stylebox_override("focus", tex_style(BAKED + "btn_green.png"))
+	plus.position = Vector2(228, 59)
+	plus.size = Vector2(48, 48)
+	var plus_l := bubbly("+", 32, GREEN_DK_TXT)
+	plus_l.set_anchors_preset(Control.PRESET_FULL_RECT)
+	plus_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plus.add_child(plus_l)
 	root.add_child(plus)
 
 	var heart_icon := icon_rect(HEART_ICON, 44)
