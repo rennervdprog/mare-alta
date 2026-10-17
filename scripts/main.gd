@@ -11,9 +11,9 @@ const PIECE_TARGET := 64.0
 const T_COCO := 0
 const T_CONCHA := 4
 
-const GOAL_COCO := 15
-const GOAL_CONCHA := 15
-const START_MOVES := 25
+const GOAL_COCO := 20
+const GOAL_CONCHA := 20
+const START_MOVES := 20
 
 const TEX_PATHS: Array[String] = [
 	"res://assets/pecas/media-generation-peca-coco-0-4c8ee45f-8fe4-4ba7-a157-87abc63074d9.webp",
@@ -105,7 +105,7 @@ func _make_goal_row(tex_idx: int) -> Label:
 	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	hb.add_child(icon)
 	var lab := Label.new()
-	lab.text = "0/15"
+	lab.text = "0/20"
 	lab.add_theme_font_size_override("font_size", 40)
 	lab.add_theme_color_override("font_color", Color.WHITE)
 	lab.add_theme_color_override("font_outline_color", Color(0.06, 0.28, 0.42))
@@ -129,7 +129,7 @@ func _build_hud() -> void:
 	add_child(_goals_box)
 	coco_label = _make_goal_row(T_COCO)
 	concha_label = _make_goal_row(T_CONCHA)
-	moves_label = _make_label("Movimentos: 25", 40, Vector2(0, 196), Vector2(720, 56))
+	moves_label = _make_label("Movimentos: 20", 40, Vector2(0, 196), Vector2(720, 56))
 	_make_label("Toque em 2 peças vizinhas ou arraste para trocar", 24, Vector2(0, 1196), Vector2(720, 40))
 	toast_label = _make_label("", 34, Vector2(0, 936), Vector2(720, 60))
 	toast_label.modulate.a = 0.0
