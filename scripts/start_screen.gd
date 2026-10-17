@@ -16,11 +16,15 @@ func _ready() -> void:
 	_logo_base_y = _logo_box.position.y
 	_start_logo_float()
 	_start_jogar_pulse()
+	# Valores reais do GameState (vidas ainda é placeholder: 5).
+	($TopBar/PillVidas/Row/Label as Label).text = "5"
+	($TopBar/PillEstrelas/Row/Label as Label).text = str(GameState.stars)
+	($TopBar/PillMoedas/Row/Label as Label).text = str(GameState.coins)
 	_jogar.pressed.connect(_on_jogar_pressed)
 	_jogar.button_down.connect(_on_jogar_down)
 	_jogar.button_up.connect(_on_jogar_up)
 	$TopBar/BtnConfig.pressed.connect(func() -> void: show_toast("Configurações em breve!"))
-	$SecRow/BtnFases.pressed.connect(func() -> void: show_toast("Mapa das fases em breve!"))
+	$SecRow/BtnFases.pressed.connect(_on_fases_pressed)
 	$SecRow/BtnPremio.pressed.connect(func() -> void: show_toast("Prêmio diário em breve!"))
 	$SecRow/BtnRanking.pressed.connect(func() -> void: show_toast("Ranking em breve!"))
 	$SecRow/BtnLoja.pressed.connect(func() -> void: show_toast("Loja em breve!"))
@@ -59,7 +63,11 @@ func _on_jogar_up() -> void:
 
 
 func _on_jogar_pressed() -> void:
-	get_tree().change_scene_to_file("res://main.tscn")
+	get_tree().change_scene_to_file("res://scenes/level_map.tscn")
+
+
+func _on_fases_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/level_map.tscn")
 
 
 func show_toast(msg: String) -> void:

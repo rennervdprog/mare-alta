@@ -10,11 +10,10 @@ const BOARD_Y := 300.0
 const PIECE_TARGET := 64.0
 
 const T_COCO := 0
+const T_GUARDA_SOL := 1
+const T_CHINELO := 2
+const T_PEIXE := 3
 const T_CONCHA := 4
-
-const GOAL_COCO := 20
-const GOAL_CONCHA := 20
-const START_MOVES := 12 # recalibrado via bot_calib.gd (Fase 2): win-rate do bot 90% em 200 jogos/limite; humano típico cai na zona near-miss
 
 const TEX_PATHS: Array[String] = [
 	"res://assets/pecas/media-generation-peca-coco-0-4c8ee45f-8fe4-4ba7-a157-87abc63074d9.webp",
@@ -37,13 +36,14 @@ var press_cell := Vector2i(-1, -1)
 var sol_armed := Vector2i(-1, -1)
 var busy := false
 var game_over := false
-var moves := START_MOVES
-var coco_count := 0
-var concha_count := 0
+var level_cfg: Dictionary = {}
+var goal_targets: Dictionary = {} # type_id -> alvo
+var goal_counts: Dictionary = {}  # type_id -> coletados
+var moves := 0
+var _won_last := false
 
 var moves_label: Label
-var coco_label: Label
-var concha_label: Label
+var goal_labels: Dictionary = {} # type_id -> Label
 var toast_label: Label
 var select_frame: Panel
 var overlay: CanvasLayer
@@ -68,6 +68,12 @@ func _tex_index(ptype: int) -> int:
 
 
 func _ready() -> void:
+	# Config da fase vem do GameState (metas + movimentos calibrados via bot).
+	level_cfg = GameState.get_level(GameState.current_level)
+	goal_targets = level_cfg["goals"]
+	for t in goal_targets.keys():
+		goal_counts[t] = 0
+	moves = int(level_cfg["moves"])
 	for p in TEX_PATHS:
 		tex.append(load(p))
 	_build_background()
@@ -75,7 +81,7 @@ func _ready() -> void:
 	_build_board()
 	_build_overlay()
 	logic = BoardLogic.new()
-	logic.goal_types = [T_COCO, T_CONCHA]
+	logic.goal_types = goal_targets.keys()
 	_rebuild_pieces()
 	_update_goal_labels()
 	_update_moves_label()
@@ -141,16 +147,16 @@ var _goals_box: HBoxContainer
 
 
 func _build_hud() -> void:
-	_make_label("MARÉ ALTA", 60, Vector2(0, 24), Vector2(720, 84))
+	_make_label("MARÉ ALTA · Fase %d" % GameState.current_level, 54, Vector2(0, 24), Vector2(720, 84))
 	_goals_box = HBoxContainer.new()
 	_goals_box.position = Vector2(0, 118)
 	_goals_box.size = Vector2(720, 64)
 	_goals_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	_goals_box.add_theme_constant_override("separation", 64)
 	add_child(_goals_box)
-	coco_label = _make_goal_row(T_COCO)
-	concha_label = _make_goal_row(T_CONCHA)
-	moves_label = _make_label("Movimentos: 12", 40, Vector2(0, 196), Vector2(720, 56))
+	for t in goal_targets.keys():
+		goal_labels[t] = _make_goal_row(int(t))
+	moves_label = _make_label("Movimentos: %d" % moves, 40, Vector2(0, 196), Vector2(720, 56))
 	_make_label("Combine 4+ para criar power-ups!", 24, Vector2(0, 1196), Vector2(720, 40))
 	toast_label = _make_label("", 34, Vector2(0, 936), Vector2(720, 60))
 	toast_label.modulate.a = 0.0
@@ -521,12 +527,24 @@ func _do_sol_fire(sol_cell: Vector2i, color: int) -> void:
 	_after_turn()
 
 
+## Soma peças coletadas às metas da fase (genérico: qualquer combinação de metas).
+func _add_counts(counts: Array) -> void:
+	for t in goal_targets.keys():
+		goal_counts[t] = int(goal_counts[t]) + int(counts[int(t)])
+
+
+func _goals_met() -> bool:
+	for t in goal_targets.keys():
+		if int(goal_counts[t]) < int(goal_targets[t]):
+			return false
+	return true
+
+
 func _execute_trigger(result: Dictionary) -> void:
 	await _play_fx(result["fx"])
 	var cells: Array = result["cells"]
 	var counts: Array = logic.remove_cells(cells)
-	coco_count += int(counts[T_COCO])
-	concha_count += int(counts[T_CONCHA])
+	_add_counts(counts)
 	await _blast_punch(cells)
 	await _pop_sprites(cells)
 	# FIX (bug 2026-10-17): a gravidade precisa rodar SEMPRE após a
@@ -555,8 +573,7 @@ func _resolve_cascades(preferred: Vector2i, square_cell: Vector2i) -> void:
 		if removed.is_empty():
 			break
 		var counts: Array = res["counts"]
-		coco_count += int(counts[T_COCO])
-		concha_count += int(counts[T_CONCHA])
+		_add_counts(counts)
 		await _pop_sprites(removed)
 		var ctype: int = int(res["created_ptype"])
 		if ctype != -1:
@@ -719,7 +736,7 @@ func _fx_gaivota_flight(from_cell: Vector2i, to_cell: Vector2i) -> void:
 
 func _after_turn() -> void:
 	_update_goal_labels()
-	if coco_count >= GOAL_COCO and concha_count >= GOAL_CONCHA:
+	if _goals_met():
 		_show_win()
 	elif moves <= 0:
 		_show_lose()
@@ -736,8 +753,9 @@ func _after_turn() -> void:
 # ---------------------------------------------------------------- UI / fim
 
 func _update_goal_labels() -> void:
-	coco_label.text = "%d/%d" % [mini(coco_count, GOAL_COCO), GOAL_COCO]
-	concha_label.text = "%d/%d" % [mini(concha_count, GOAL_CONCHA), GOAL_CONCHA]
+	for t in goal_targets.keys():
+		var lab: Label = goal_labels[t]
+		lab.text = "%d/%d" % [mini(int(goal_counts[t]), int(goal_targets[t])), int(goal_targets[t])]
 
 
 func _update_moves_label() -> void:
@@ -757,34 +775,41 @@ func _hide_toast() -> void:
 
 func _show_win() -> void:
 	game_over = true
+	_won_last = true
 	_update_select_frame()
+	var first: bool = GameState.on_level_won(GameState.current_level)
 	overlay_title.text = "Você venceu!"
-	overlay_sub.text = "Meta cumprida!"
+	overlay_sub.text = "Você ganhou 1 estrela!" if first else "Fase concluída!"
 	overlay_star_holder.visible = true
-	overlay_button.text = "Jogar de novo"
+	overlay_button.text = "Continuar"
 	overlay.show()
 
 
 func _show_lose() -> void:
 	game_over = true
+	_won_last = false
 	_update_select_frame()
 	overlay_title.text = "Não foi dessa vez..."
-	overlay_sub.text = "Faltaram %d cocos e %d conchas." % [
-		maxi(GOAL_COCO - coco_count, 0), maxi(GOAL_CONCHA - concha_count, 0)]
+	var parts := PackedStringArray()
+	for t in goal_targets.keys():
+		var missing := maxi(int(goal_targets[t]) - int(goal_counts[t]), 0)
+		if missing > 0:
+			parts.append("%d %s" % [missing, GameState.TYPE_NAMES[int(t)]])
+	overlay_sub.text = "Faltaram " + " e ".join(parts) + "."
 	overlay_star_holder.visible = false
-	overlay_button.text = "Tentar de novo"
+	overlay_button.text = "Voltar ao mapa"
 	overlay.show()
 
 
 func _on_overlay_button() -> void:
 	overlay.hide()
-	_restart()
+	get_tree().change_scene_to_file("res://scenes/level_map.tscn")
 
 
 func _restart() -> void:
-	moves = START_MOVES
-	coco_count = 0
-	concha_count = 0
+	moves = int(level_cfg["moves"])
+	for t in goal_targets.keys():
+		goal_counts[t] = 0
 	game_over = false
 	busy = false
 	selected = Vector2i(-1, -1)
