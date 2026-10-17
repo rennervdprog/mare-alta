@@ -64,8 +64,8 @@ func _check_main_config() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var gt: Dictionary = inst.goal_targets
-	if int(gt.get(0, -1)) == 12 and int(gt.get(2, -1)) == 12 and gt.size() == 2 and inst.moves == 9:
-		print("PASS: fase 5 carrega config (12 cocos + 12 chinelos, 9 mov)")
+	if int(gt.get(0, -1)) == 12 and int(gt.get(2, -1)) == 12 and gt.size() == 2 and inst.moves == 10:
+		print("PASS: fase 5 carrega config (12 cocos + 12 chinelos, 10 mov)")
 	else:
 		printerr("FAIL: config da fase 5 errada: ", gt, " moves=", inst.moves)
 		_fails += 1

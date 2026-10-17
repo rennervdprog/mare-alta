@@ -42,6 +42,14 @@ var goal_counts: Dictionary = {}  # type_id -> coletados
 var moves := 0
 var _won_last := false
 
+# Sistema de dica (idle hint): após HINT_DELAY sem input, sugere um movimento
+# com pulso nas peças. Qualquer toque/arrastar cancela e reinicia o timer.
+const HINT_DELAY := 4.0
+var hint_idle := 0.0
+var hint_cells: Array = []  # Vector2i das peças destacadas
+var hint_scales: Array = [] # escalas-base para restaurar ao cancelar
+var hint_tweens: Array = [] # tweens do pulso
+
 var moves_label: Label
 var goal_labels: Dictionary = {} # type_id -> Label
 var toast_label: Label
@@ -246,6 +254,63 @@ func _build_overlay() -> void:
 
 # ---------------------------------------------------------------- entrada
 
+func _process(delta: float) -> void:
+	## Timer do idle hint: 4s sem input e sem animação -> sugere um movimento.
+	if game_over or busy or overlay.visible or _valid_cell(sol_armed):
+		if not hint_cells.is_empty():
+			_cancel_hint()
+		hint_idle = 0.0
+		return
+	hint_idle += delta
+	if hint_idle >= HINT_DELAY and hint_cells.is_empty():
+		_show_hint()
+
+
+func _show_hint() -> void:
+	if logic == null:
+		return
+	var h: Dictionary = logic.find_hint()
+	if h.is_empty():
+		hint_idle = 0.0 # sem dica agora; tenta de novo em 4s
+		return
+	var cells: Array = [h["a"]]
+	if h["b"] != h["a"]:
+		cells.append(h["b"])
+	for v in cells:
+		var cell: Vector2i = v
+		if not _valid_cell(cell):
+			continue
+		var node: Sprite2D = pieces[cell.y][cell.x]
+		if node == null:
+			continue
+		hint_cells.append(cell)
+		hint_scales.append(node.scale)
+		var tw := create_tween().set_loops()
+		tw.tween_property(node, "scale", node.scale * 1.22, 0.45)\
+			.set_trans(Tween.TRANS_SINE)
+		tw.tween_property(node, "scale", node.scale, 0.45)\
+			.set_trans(Tween.TRANS_SINE)
+		hint_tweens.append(tw)
+
+
+func _cancel_hint() -> void:
+	## Qualquer toque/arrastar chama isto: mata o pulso, restaura escalas,
+	## reinicia o timer.
+	for tw in hint_tweens:
+		if is_instance_valid(tw):
+			(tw as Tween).kill()
+	hint_tweens.clear()
+	for i in hint_cells.size():
+		var cell: Vector2i = hint_cells[i]
+		if _valid_cell(cell) and i < hint_scales.size():
+			var node: Sprite2D = pieces[cell.y][cell.x]
+			if is_instance_valid(node):
+				node.scale = hint_scales[i]
+	hint_cells.clear()
+	hint_scales.clear()
+	hint_idle = 0.0
+
+
 func _input(event: InputEvent) -> void:
 	if game_over or busy or overlay.visible:
 		return
@@ -271,6 +336,7 @@ func _input(event: InputEvent) -> void:
 
 
 func _drag_to(screen_pos: Vector2) -> void:
+	_cancel_hint()
 	if not _valid_cell(press_cell):
 		return
 	var cell := _screen_to_cell(screen_pos)
@@ -289,6 +355,7 @@ func _drag_to(screen_pos: Vector2) -> void:
 
 
 func _on_press(screen_pos: Vector2) -> void:
+	_cancel_hint()
 	var cell := _screen_to_cell(screen_pos)
 	if not _valid_cell(cell):
 		return
@@ -333,6 +400,7 @@ func _on_press(screen_pos: Vector2) -> void:
 
 
 func _on_release(screen_pos: Vector2) -> void:
+	_cancel_hint()
 	var cell := _screen_to_cell(screen_pos)
 	if _valid_cell(press_cell) and _valid_cell(cell) and cell != press_cell \
 			and logic.are_adjacent(press_cell, cell):
@@ -399,6 +467,7 @@ func _create_piece(ptype: int, cell: Vector2i) -> Sprite2D:
 
 
 func _rebuild_pieces() -> void:
+	_cancel_hint() # peças serão recriadas; o pulso não pode apontar p/ nós mortos
 	for child in board_node.get_children():
 		if child != select_frame:
 			child.queue_free()

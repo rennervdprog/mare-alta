@@ -116,7 +116,7 @@ func _t_level_configs() -> void:
 	var gs = _new_gs()
 	var l1: Dictionary = gs.get_level(1)
 	_check(int((l1["goals"] as Dictionary)[0]) == 10 and (l1["goals"] as Dictionary).size() == 1, "fase 1: 10 cocos")
-	_check(int(l1["moves"]) == 6, "fase 1: 6 movimentos")
+	_check(int(l1["moves"]) == 9, "fase 1: 9 movimentos (recalibrada: bot 99%)")
 	var l10: Dictionary = gs.get_level(10)
 	_check(int((l10["goals"] as Dictionary)[0]) == 20 and int((l10["goals"] as Dictionary)[4]) == 20, "fase 10: 20 cocos + 20 conchas")
 	_check(int(l10["moves"]) == 11, "fase 10: 11 movimentos")

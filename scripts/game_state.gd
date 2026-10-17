@@ -6,15 +6,17 @@ extends Node
 const TYPE_IDS := {"coco": 0, "guarda_sol": 1, "chinelo": 2, "peixe": 3, "concha": 4}
 const TYPE_NAMES := {0: "cocos", 1: "guarda-sóis", 2: "chinelos", 3: "peixes", 4: "conchas"}
 
-## Movimentos calibrados com o bot (100 jogos/fase; alvo: bot vencendo ~90%
-## nas fases 1-9 e ~85% na 10 -> humano típico na zona near-miss).
-## Win-rates medidos: 90/96/91/90/95/96/95/92/94/84.
+## Movimentos calibrados com o bot (100 jogos/fase).
+## Curva: fases 1-3 quase impossíveis de perder (onboarding; alvo bot 98-100%),
+## 4-5 suaves (alvo 93-96%), 6-10 mantêm a zona near-miss (~84-96%).
+## Regra de ouro: toda fase deve ser visivelmente possível para um humano.
+## Win-rates medidos: 99/100/99/95/96/96/95/92/94/84.
 const LEVELS: Array = [
-	{"goals": {"coco": 10}, "moves": 6},                          # 1 - bot 90%
-	{"goals": {"concha": 12}, "moves": 8},                        # 2 - bot 96%
-	{"goals": {"coco": 10, "concha": 10}, "moves": 8},            # 3 - bot 91%
-	{"goals": {"peixe": 15}, "moves": 8},                         # 4 - bot 90%
-	{"goals": {"coco": 12, "chinelo": 12}, "moves": 9},           # 5 - bot 95%
+	{"goals": {"coco": 10}, "moves": 9},                          # 1 - bot 99%
+	{"goals": {"concha": 12}, "moves": 10},                       # 2 - bot 100%
+	{"goals": {"coco": 10, "concha": 10}, "moves": 10},           # 3 - bot 99%
+	{"goals": {"peixe": 15}, "moves": 9},                         # 4 - bot 95%
+	{"goals": {"coco": 12, "chinelo": 12}, "moves": 10},          # 5 - bot 96%
 	{"goals": {"concha": 15, "guarda_sol": 10}, "moves": 10},     # 6 - bot 96%
 	{"goals": {"coco": 20}, "moves": 11},                         # 7 - bot 95%
 	{"goals": {"peixe": 15, "chinelo": 15}, "moves": 10},          # 8 - bot 92%
